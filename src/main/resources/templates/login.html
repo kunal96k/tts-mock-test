@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/login.css}">
+    <title th:text="${role == 'ADMIN'} ? 'Admin Login' : 'Student Login'">Login</title>
+
+    <link rel="icon" type="image/png" th:href="@{/images/tts-logo-removebg-preview.png}">
+</head>
+<body>
+<section class="container">
+    <div class="login-container">
+        <div class="circle circle-one"></div>
+        <div class="form-container">
+            <img th:src="@{/images/illustration.png}" alt="illustration" class="illustration"/>
+
+            <!-- Header changes based on role -->
+            <h2 class="opacity" th:text="${role == 'ADMIN'} ? 'ADMIN LOGIN' : 'STUDENT LOGIN'"></h2>
+
+            <!-- Login form -->
+            <form th:action="@{/login}" method="post">
+                <!-- CSRF Token -->
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <!-- Hidden role field -->
+                <input type="hidden" name="role" th:value="${role}"/>
+
+                <input type="text" name="username" placeholder="USERNAME" required/>
+                <input type="password" name="password" placeholder="PASSWORD" required/>
+
+                <button type="submit" class="opacity">SUBMIT</button>
+
+                <!-- Message container -->
+                <div style="min-height: 30px; margin: 0 auto;">
+                    <div th:if="${param.error != null and param.error[0] == 'unauthorized'}" class="error-message" style="color:red;">
+                        <span th:if="${role == 'ADMIN'}">You don't have admin privileges! Please use student login.</span>
+                        <span th:if="${role == 'STUDENT'}">You don't have student access! Please use admin login.</span>
+                    </div>
+                    <div th:if="${param.error != null and param.error[0] != 'unauthorized'}" class="error-message" style="color:red;">
+                        Invalid username or password!
+                    </div>
+                    <div th:if="${param.logout}" class="logout-message" style="color:green;">
+                        You have been logged out successfully.
+                    </div>
+                </div>
+            </form>
+
+            <div class="register-forget opacity">
+                <!-- Sign Up link only visible to ADMIN -->
+                <a th:if="${role == 'ADMIN'}" th:href="@{/signup}">Sign Up</a>
+                <a th:href="@{/forgot-password}">Forgot Password</a>
+                <a th:href="@{/reset-password}">Reset Password</a>
+            </div>
+
+        </div>
+        <div class="circle circle-two"></div>
+    </div>
+</section>
+
+<div>
+    <div class="support-modal hidden" id="supportModal" role="dialog" aria-modal="true"
+         aria-labelledby="supportModalTitle" aria-describedby="supportModalDescription" tabindex="-1">
+        <div class="support-modal__header">
+            <h2 id="supportModalTitle">Need Assistance?</h2>
+            <button type="button" class="support-modal__close js-support-close" aria-label="Close support modal">&times;</button>
+        </div>
+        <div class="support-modal__content">
+            <p id="supportModalDescription">We're here to help. Reach out using the contact details below.</p>
+            <div class="support-modal__contact">
+                <a href="mailto:arbaaz@tts.net.in">arbaaz@tts.net.in</a>
+                <a href="tel:+919371044424">+91 93710 44424</a>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop hidden" id="supportModalBackdrop"></div>
+</div>
+
+<script th:src="@{/js/login.js}"></script>
+</body>
+</html>
