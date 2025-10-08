@@ -1,7 +1,9 @@
 package com.tts.testApp.config;
 
 import com.tts.testApp.model.Admin;
+import com.tts.testApp.model.Student;
 import com.tts.testApp.repository.AdminRepository;
+import com.tts.testApp.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -9,9 +11,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.Collections;
 
@@ -21,43 +21,60 @@ import java.util.Collections;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final AdminRepository adminRepository;
+    private final StudentRepository studentRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.info("Loading user by username: {}", username);
+        log.info("Attempting to load user: {}", username);
 
-        // Try to load from Admin table
-        Admin admin = adminRepository.findByUsername(username)
-                .orElseThrow(() -> {
-                    log.error("User not found: {}", username);
-                    return new UsernameNotFoundException("User not found: " + username);
-                });
+        // Try ADMIN first
+        Admin admin = adminRepository.findByUsername(username).orElse(null);
+        if (admin != null) {
+            log.info("Admin found: {} with role: {}", username, admin.getRole());
 
-        // Check if account is active
-        if (!admin.getIsActive()) {
-            log.warn("Account is deactivated: {}", username);
-            throw new UsernameNotFoundException("Account is deactivated");
+            if (!admin.getIsActive()) {
+                log.warn("Admin account is deactivated: {}", username);
+                throw new UsernameNotFoundException("Account is deactivated");
+            }
+
+            if (admin.getAccountLockedUntil() != null &&
+                    LocalDateTime.now().isBefore(admin.getAccountLockedUntil())) {
+                log.warn("Admin account locked: {}", username);
+                throw new UsernameNotFoundException("Account is locked");
+            }
+
+            return User.builder()
+                    .username(admin.getUsername())
+                    .password(admin.getPassword())
+                    .authorities(Collections.singletonList(
+                            new SimpleGrantedAuthority("ROLE_" + admin.getRole())
+                    ))
+                    .accountExpired(false)
+                    .accountLocked(false)
+                    .credentialsExpired(false)
+                    .disabled(!admin.getIsActive())
+                    .build();
         }
 
-        // Check if account is locked
-        if (admin.getAccountLockedUntil() != null &&
-                LocalDateTime.now().isBefore(admin.getAccountLockedUntil())) {
-            log.warn("Account is locked: {}", username);
-            throw new UsernameNotFoundException("Account is locked due to multiple failed login attempts");
+        // Try STUDENT next
+        Student student = studentRepository.findByEmail(username).orElse(null);
+        if (student != null) {
+            log.info("Student found: {} with role: {}", username, student.getRole());
+            log.info("Student email: {}, password: {}", student.getEmail(), student.getPassword());
+
+            return User.builder()
+                    .username(student.getEmail())
+                    .password(student.getPassword())
+                    .authorities(Collections.singletonList(
+                            new SimpleGrantedAuthority(student.getRole())
+                    ))
+                    .accountLocked(!student.isAccountNonLocked())
+                    .disabled(!student.isEnabled())
+                    .build();
         }
 
-        log.info("User loaded successfully: {}", username);
-
-        return User.builder()
-                .username(admin.getUsername())
-                .password(admin.getPassword())
-                .authorities(Collections.singletonList(
-                        new SimpleGrantedAuthority("ROLE_" + admin.getRole())
-                ))
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(!admin.getIsActive())
-                .build();
+        // If neither found
+        log.error("User not found: {}", username);
+        throw new UsernameNotFoundException("User not found: " + username);
     }
 }

@@ -47,22 +47,6 @@ public class SecurityConfig {
             AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
-    @Bean
-    public InMemoryUserDetailsManager userDetailsService(PasswordEncoder passwordEncoder) {
-//        UserDetails admin = User.builder()
-//                .username("admin")
-//                .password(passwordEncoder.encode("admin123"))
-//                .roles("ADMIN")
-//                .build();
-
-        UserDetails student = User.builder()
-                .username("student")
-                .password(passwordEncoder.encode("student123"))
-                .roles("STUDENT")
-                .build();
-
-        return new InMemoryUserDetailsManager(student);
-    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -79,10 +63,10 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/","/h2-console/**","/signup", "/login", "/forgot-password", "/reset-password").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**","/start-test/**").permitAll()
                         .requestMatchers("/admin-dashboard/**").hasRole("ADMIN")
                         .requestMatchers("/student-dashboard/**").hasRole("STUDENT")
-                        .requestMatchers("/start-test/**").authenticated()
+//                        .requestMatchers("/start-test/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

@@ -19,14 +19,27 @@
 
             <!-- Sign Up Form -->
             <form th:action="@{/signup}" method="post">
-                <!-- CSRF Token -->
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                 <input type="text" name="fullName" placeholder="FULL NAME" required/>
                 <input type="text" name="username" placeholder="USERNAME" required/>
                 <input type="email" name="email" placeholder="EMAIL" required/>
                 <input type="password" name="password" placeholder="PASSWORD" required/>
                 <input type="password" name="confirmPassword" placeholder="CONFIRM PASSWORD" required/>
+
+                <!-- Role Selection -->
+                <div class="input-group">
+                    <label for="role">Select Role</label>
+                    <select id="role" name="role" required>
+                        <option value="USER" selected>USER</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </div>
+
+                <!-- Admin Code (hidden unless ADMIN selected) -->
+                <div class="input-group" id="adminCodeGroup" style="display:none;">
+                    <label for="adminCode">Admin Code</label>
+                    <input type="text" id="adminCode" name="adminCode" placeholder="Enter Admin Code"/>
+                </div>
 
                 <button type="submit" class="opacity">SIGN UP</button>
 
@@ -38,7 +51,6 @@
                 <div th:if="${success}" class="success-message" style="color:green;">
                     <span th:text="${success}"></span>
                 </div>
-
             </form>
 
             <!-- Links -->
@@ -71,5 +83,18 @@
 </div>
 
 <script th:src="@{/js/login.js}"></script>
+<script>
+    // Show/hide admin code input based on role selection
+    const roleSelect = document.getElementById('role');
+    const adminCodeGroup = document.getElementById('adminCodeGroup');
+
+    roleSelect.addEventListener('change', function() {
+        if(this.value === 'ADMIN') {
+            adminCodeGroup.style.display = 'block';
+        } else {
+            adminCodeGroup.style.display = 'none';
+        }
+    });
+</script>
 </body>
 </html>

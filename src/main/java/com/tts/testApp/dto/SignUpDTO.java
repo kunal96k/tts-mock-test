@@ -33,4 +33,12 @@ public class SignUpDTO {
 
     @NotBlank(message = "Confirm password is required")
     private String confirmPassword;
+
+    // ===== ADMIN CODE =====
+    // Optional for normal users, required only for admin signup
+    private String adminCode;
+
+    // ===== ROLE =====
+    // Optional field to indicate role (ADMIN/USER)
+    private String role;
 }
