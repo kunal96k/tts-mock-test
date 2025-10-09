@@ -8,13 +8,19 @@
     <title th:text="${role == 'ADMIN'} ? 'Admin Login' : 'Student Login'">Login</title>
 
     <link rel="icon" type="image/png" th:href="@{/images/tts-logo-removebg-preview.png}">
+    <style>
+        .container {
+           height: 100vh;
+        }
+    </style>
+
 </head>
 <body>
 <section class="container">
     <div class="login-container">
         <div class="circle circle-one"></div>
         <div class="form-container">
-            <img th:src="@{/images/illustration.png}" alt="illustration" class="illustration"/>
+            <img th:src="@{/images/tts-logo-ev.png}" alt="illustration" class="illustration"/>
 
             <!-- Header changes based on role -->
             <h2 class="opacity" th:text="${role == 'ADMIN'} ? 'ADMIN LOGIN' : 'STUDENT LOGIN'"></h2>
@@ -26,7 +32,7 @@
                 <!-- Hidden role field -->
                 <input type="hidden" name="role" th:value="${role}"/>
 
-                <input type="text" name="username" placeholder="USERNAME" required/>
+                <input type="text" name="username"  th:placeholder="${role == 'ADMIN'} ? 'Username' : 'Email'" required/>
                 <input type="password" name="password" placeholder="PASSWORD" required/>
 
                 <button type="submit" class="opacity">SUBMIT</button>

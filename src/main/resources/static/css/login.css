@@ -39,7 +39,7 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+
 }
 
 .login-container {
@@ -133,9 +133,10 @@ h1 {
 
 .illustration {
     position: absolute;
-    top: -14%;
-    right: -2px;
-    width: 90%;
+    top: -20%;
+    right: -40%;
+    width: 100%;
+    opacity: 0.75;
 }
 
 .circle-one {
@@ -482,15 +483,14 @@ h1 {
     }
 }
 
-
-/* Style for Role Selection dropdown */
+/* ===== Role Selection Dropdown Styling ===== */
 .input-group select {
     display: block;
     width: 100%;
     padding: 14.5px;
-    margin: 0; /* aligns with other inputs */
+    margin: 0;
     color: var(--color);
-    background-color: #9191911f; /* semi-transparent like inputs */
+    background-color: #9191911f;
     border: none;
     border-radius: 5px;
     font-weight: 500;
@@ -499,6 +499,15 @@ h1 {
     outline: none;
     backdrop-filter: blur(15px);
     transition: all 0.2s ease;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: none;
+}
+
+.input-group select::-ms-expand {
+    display: none;
 }
 
 .input-group select:focus {
@@ -507,6 +516,19 @@ h1 {
 }
 
 .input-group select option {
-    color: var(--background); /* makes selected options visible */
-    background-color: #ffffff; /* optional: dropdown background */
+    background-color: #f8f8f8; /* dropdown background */
+    color: #333; /* text color for readability */
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    padding: 10px;
+}
+
+.input-group select option:hover {
+    background-color: #e1e1e1;
+}
+
+@supports (-webkit-backdrop-filter: blur(10px)) {
+    .input-group select option {
+        backdrop-filter: blur(6px);
+    }
 }

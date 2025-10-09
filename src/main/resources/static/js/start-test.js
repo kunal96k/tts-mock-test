@@ -462,36 +462,43 @@ function downloadPDF() {
 
     // ===== HEADER FUNCTION =====
     function addPageHeader() {
-        // Purple gradient header bar
-        doc.setFillColor(102, 126, 234);
-        doc.rect(0, 0, pageWidth, 45, 'F');
-        
-        // Company name
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
-        doc.setFont('helvetica', 'bold');
-        doc.text('TechnoKraft', margin, 18);
-        
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Training & Solution Pvt. Ltd.', margin, 24);
-        
-        // Report title on right
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('ASSESSMENT REPORT', pageWidth - margin, 16, { align: 'right' });
-        
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
-        doc.text(testDate, pageWidth - margin, 22, { align: 'right' });
-        
-        // White separator line
-        doc.setDrawColor(255, 255, 255);
-        doc.setLineWidth(0.5);
-        doc.line(margin, 38, pageWidth - margin, 38);
-        
-        return 55;
-    }
+          // Modern gradient header (darker purple to lighter)
+          doc.setFillColor(88, 101, 242);
+          doc.rect(0, 0, pageWidth, 50, 'F');
+
+          // Lighter overlay for gradient effect
+          doc.setFillColor(102, 126, 234);
+          doc.setGState(new doc.GState({opacity: 0.8}));
+          doc.rect(0, 0, pageWidth, 50, 'F');
+          doc.setGState(new doc.GState({opacity: 1}));
+
+          var imgData =""
+          var imgWidth = 55;
+          var imgHeight = 22;
+          doc.addImage(imgData, 'PNG', margin, 14, imgWidth, imgHeight);
+
+          // Modern report title with better typography
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('ASSESSMENT REPORT', pageWidth - margin, 20, { align: 'right' });
+
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.setGState(new doc.GState({opacity: 0.9}));
+          doc.text(testDate, pageWidth - margin, 28, { align: 'right' });
+          doc.setGState(new doc.GState({opacity: 1}));
+
+          // Subtle separator with shadow effect
+          doc.setDrawColor(255, 255, 255);
+          doc.setGState(new doc.GState({opacity: 0.3}));
+          doc.setLineWidth(0.3);
+          doc.line(margin, 42, pageWidth - margin, 42);
+          doc.setGState(new doc.GState({opacity: 1}));
+
+          return 62;
+      }
+
 
     // ===== PAGE 1: SUMMARY =====
     yPos = addPageHeader();
@@ -664,102 +671,6 @@ function downloadPDF() {
     
     yPos += 20;
 
-    // ===== PAGE 2+: DETAILED ANALYSIS =====
-    doc.addPage();
-    yPos = addPageHeader();
-    
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 41, 59);
-    doc.text('DETAILED QUESTION ANALYSIS', margin, yPos);
-    
-    doc.setDrawColor(102, 126, 234);
-    doc.setLineWidth(1);
-    doc.line(margin, yPos + 1.5, margin + 68, yPos + 1.5);
-    
-    yPos += 10;
-
-    allReviewData.forEach((item, index) => {
-        const minHeight = 40;
-        
-        // Check if we need a new page
-        if (yPos > pageHeight - 60) {
-            doc.addPage();
-            yPos = addPageHeader();
-        }
-
-        // Question box
-        let boxColor, borderColor;
-        if (item.status === 'correct') {
-            boxColor = [240, 253, 244];
-            borderColor = [134, 239, 172];
-        } else if (item.status === 'incorrect') {
-            boxColor = [254, 242, 242];
-            borderColor = [252, 165, 165];
-        } else {
-            boxColor = [255, 251, 235];
-            borderColor = [253, 224, 71];
-        }
-        
-        doc.setFillColor(...boxColor);
-        doc.setDrawColor(...borderColor);
-        doc.setLineWidth(0.8);
-        doc.roundedRect(margin, yPos, contentWidth, minHeight, 2, 2, 'FD');
-        
-        // Question number and status
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.setTextColor(30, 41, 59);
-        doc.text(`Q${item.questionNum}`, margin + 3, yPos + 6);
-        
-        // Status icon
-        const statusIcon = item.status === 'correct' ? '✓' : item.status === 'incorrect' ? '✗' : '○';
-        if (item.status === 'correct') {
-            doc.setTextColor(5, 150, 105);
-        } else if (item.status === 'incorrect') {
-            doc.setTextColor(220, 38, 38);
-        } else {
-            doc.setTextColor(217, 119, 6);
-        }
-        doc.setFontSize(11);
-        doc.text(statusIcon, pageWidth - margin - 4, yPos + 6);
-        
-        // Question text
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(51, 65, 85);
-        const questionLines = doc.splitTextToSize(item.question, contentWidth - 10);
-        doc.text(questionLines.slice(0, 2), margin + 3, yPos + 12);
-        
-        // Your Answer
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7);
-        doc.setTextColor(71, 85, 105);
-        doc.text('Your Answer:', margin + 3, yPos + 24);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(30, 41, 59);
-        const userAnswerText = doc.splitTextToSize(item.userAnswer, contentWidth - 32);
-        doc.text(userAnswerText[0], margin + 24, yPos + 24);
-        
-        // Correct Answer (if wrong or unanswered)
-        if (item.status !== 'correct') {
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(7);
-            doc.setTextColor(5, 150, 105);
-            doc.text('Correct Answer:', margin + 3, yPos + 31);
-            
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            doc.setTextColor(30, 41, 59);
-            const correctAnswerText = doc.splitTextToSize(item.correctAnswer, contentWidth - 38);
-            doc.text(correctAnswerText[0], margin + 30, yPos + 31);
-        }
-        
-        yPos += minHeight + 3;
-    });
-
     // ===== ADD FOOTER TO ALL PAGES =====
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
@@ -819,9 +730,9 @@ function emailReport() {
 }
 
 function backToDashboard() {
-    if (confirm('Are you sure you want to return to dashboard?')) {
-        location.reload();
-    }
+     if (confirm('Are you sure you want to return to dashboard?')) {
+            window.location.href = '/student-dashboard';
+        }
 }
 
 document.addEventListener('contextmenu', function(e) {

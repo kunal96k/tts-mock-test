@@ -81,6 +81,7 @@ public class PageController {
         try {
             // ====== ADMIN CODE VALIDATION ======
             String SECRET_ADMIN_CODE = "ZVNabE9HZGpNNGZu";
+
             if ("ADMIN".equalsIgnoreCase(signUpDTO.getRole())) {
                 if (signUpDTO.getAdminCode() == null ||
                         !SECRET_ADMIN_CODE.equals(signUpDTO.getAdminCode().trim())) {
@@ -88,6 +89,11 @@ public class PageController {
                     redirectAttributes.addFlashAttribute("signUpDTO", signUpDTO);
                     return "redirect:/signup";
                 }
+            } else {
+                redirectAttributes.addFlashAttribute("error",
+                        "Access restricted: This signup service is temporarily available only for administrators.");
+                redirectAttributes.addFlashAttribute("signUpDTO", signUpDTO);
+                return "redirect:/signup";
             }
 
             Admin admin = adminService.registerAdmin(signUpDTO, request);
@@ -110,7 +116,6 @@ public class PageController {
             return "redirect:/signup";
         }
     }
-
 
     // ========================================
     // PASSWORD RESET PAGES

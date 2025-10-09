@@ -6,16 +6,175 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" th:href="@{/css/login.css}">
     <title>Sign Up</title>
-
     <link rel="icon" type="image/png" th:href="@{/images/tts-logo-removebg-preview.png}">
+    <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+    />
+
+    <style>
+
+        .form-container {
+            margin-top: 2rem;
+        }
+
+                /* ===== Guidelines Icon ===== */
+        .signup-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 15px;
+        }
+
+        /* ===== Info Icon ===== */
+        .info-icon {
+          position: absolute;
+          top: 20px;
+          right: 25px;
+          font-size: 24px;
+          color: var(--color, #007bff);
+          cursor: pointer;
+          animation: pulse 1.8s infinite;
+          transition: transform 0.2s ease;
+        }
+
+        .info-icon:hover {
+          transform: scale(1.1);
+          color: #0056b3;
+        }
+
+        @keyframes pulse {
+          0% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.1); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* ===== Modal Overlay ===== */
+        .modal {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background-color: rgba(0, 0, 0, 0.55);
+          backdrop-filter: blur(5px);
+          justify-content: center;
+          align-items: center;
+          z-index: 9999;
+        }
+
+        /* ===== Modal Content ===== */
+        .modal-content {
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(15px);
+          border-radius: 15px;
+          padding: 25px 35px;
+          width: fit-content
+          max-width: 90%;
+          color: #fff;
+          font-family: 'Poppins', sans-serif;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+          animation: fadeIn 0.4s ease, scaleIn 0.3s ease;
+        }
+
+        .modal-content h2 {
+          font-size: 22px;
+          margin-bottom: 15px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          border-bottom: 1px solid rgba(255,255,255,0.2);
+          padding-bottom: 8px;
+        }
+
+        .modal-content i {
+          color: #ffcc00;
+        }
+
+        .guidelines-list {
+          list-style: none;
+          padding: 0;
+          margin: 15px 0 0;
+        }
+
+        .guidelines-list li {
+          margin: 10px 0;
+          line-height: 1.4;
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          color: #f0f0f0;
+        }
+
+        .guidelines-list li i {
+          color: #00d4ff;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        /* ===== Close Button ===== */
+        .close {
+          position: absolute;
+          top: 15px;
+          right: 20px;
+          font-size: 26px;
+          color: #fff;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+
+        .close:hover {
+          color: #ff6666;
+        }
+
+        /* ===== Animations ===== */
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.9); }
+          to { transform: scale(1); }
+        }
+
+    </style>
+
 </head>
 <body>
 <section class="container">
     <div class="login-container" style="margin-top:20px;">
         <div class="circle circle-one"></div>
+
+        <!-- Guidelines Modal -->
+        <div id="guidelinesModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeModal">&times;</span>
+                <h2><i class="fa-solid fa-clipboard-check"></i> Signup Guidelines</h2>
+
+                <ul class="guidelines-list" style="list-style-type: circle; ">
+                    <li><strong>Full Name:</strong> Only letters and spaces (3–100 characters).</li>
+                    <li><strong>Username:</strong> 4–50 characters. Letters, numbers, and underscores only.</li>
+                    <li><strong>Email:</strong> Must be a valid and unique email address.</li>
+                    <li><strong>Password:</strong> Minimum 8 characters, including uppercase, lowercase, digit, and special character.</li>
+                    <li><strong>Confirm Password:</strong> Must exactly match your password.</li>
+                    <li><strong>Admin Code:</strong> Required only if you select the <em>ADMIN</em> role.</li>
+                    <li><strong>Role:</strong> Choose your role carefully — <em>USER</em> or <em>ADMIN</em>.</li>
+                </ul>
+
+                <p class="note">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <strong>Note:</strong> This signup service is currently available <em>only for Administrators</em> on a temporary basis.
+                </p>
+            </div>
+        </div>
+
         <div class="form-container">
             <!-- Header -->
+            <div class="signup-header">
             <h2 class="opacity" style="text-align:center;">SIGN UP</h2>
+            <i class="fa-solid fa-circle-info info-icon" id="guidelinesBtn" title="View Form Guidelines"></i>
+        </div>
 
             <!-- Sign Up Form -->
             <form th:action="@{/signup}" method="post">
@@ -84,7 +243,21 @@
 
 <script th:src="@{/js/login.js}"></script>
 <script>
-    // Show/hide admin code input based on role selection
+// Modal functionality for guidelines
+           document.getElementById('guidelinesBtn').addEventListener('click', () => {
+      document.getElementById('guidelinesModal').style.display = 'flex';
+    });
+
+    document.getElementById('closeModal').addEventListener('click', () => {
+      document.getElementById('guidelinesModal').style.display = 'none';
+    });
+
+    window.addEventListener('click', (e) => {
+      const modal = document.getElementById('guidelinesModal');
+      if (e.target === modal) modal.style.display = 'none';
+    });
+
+// Show/hide admin code input based on role selection
     const roleSelect = document.getElementById('role');
     const adminCodeGroup = document.getElementById('adminCodeGroup');
 
@@ -95,6 +268,8 @@
             adminCodeGroup.style.display = 'none';
         }
     });
+
+
 </script>
 </body>
 </html>
