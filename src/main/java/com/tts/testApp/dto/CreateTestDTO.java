@@ -81,6 +81,11 @@ public class CreateTestDTO {
     private LocalDateTime updatedAt;
 
     /**
+     * Associated question bank ID
+     */
+    private Long questionBankId;
+
+    /**
      * Whether the test is active
      */
     private Boolean active = true;

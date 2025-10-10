@@ -49,18 +49,6 @@
             </div>
         </div>
 
-        <div class="question-stats" th:if="${questionBankStats != null}">
-            <div class="stat-box">
-                <i class='bx bx-data'></i>
-                <span>Question Bank: <strong th:text="${questionBankStats.totalQuestions}">150</strong> questions available</span>
-            </div>
-            <div class="difficulty-distribution">
-                <span class="difficulty-tag easy">Easy: <strong th:text="${questionBankStats.easyQuestions}">50</strong></span>
-                <span class="difficulty-tag medium">Medium: <strong th:text="${questionBankStats.mediumQuestions}">70</strong></span>
-                <span class="difficulty-tag hard">Hard: <strong th:text="${questionBankStats.hardQuestions}">30</strong></span>
-            </div>
-        </div>
-
         <div class="instructions">
             <h3><i class='bx bx-info-circle'></i> Important Instructions</h3>
             <ul>

@@ -56,6 +56,9 @@ public class CreateTest {
     @Column(nullable = false)
     private Integer tabSwitchLimit;
 
+    @Column(name = "question_bank_id")
+    private Long questionBankId;
+
     @Column(nullable = false)
     private Boolean active = true;
 

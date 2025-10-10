@@ -393,37 +393,37 @@
                             <!-- Action buttons -->
                             <td>
                                 <div class="action-buttons">
-                                    <button class="action-btn btn-primary"
-                                            title="View Details"
-                                            th:onclick="'viewTestDetails(' + ${test.id} + ')'">
-                                        <i class="bx bx-show"></i>
-                                    </button>
-                                    <button class="action-btn btn-secondary"
-                                            title="Edit"
-                                            th:onclick="'editTest(' + ${test.id} + ')'">
-                                        <i class="bx bx-edit"></i>
-                                    </button>
-                                    <button class="action-btn btn-danger"
-                                            title="Delete"
-                                            th:onclick="'deleteTest(' + ${test.id} + ')'">
-                                        <i class="bx bx-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                    <div th:if="${#lists.isEmpty(allTests)}" class="empty-state">
-                        <i class="bx bx-clipboard"></i>
-                        <h3>No Tests Created Yet</h3>
-                        <p>Create your first test to get started</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+                                    <!--  <button class="action-btn btn-primary"
+                                          title="View Details"
+                                          th:onclick="'viewTestDetails(' + ${test.id} + ')'">
+                                      <i class="bx bx-show"></i>
+                                  </button>
+                                  <button class="action-btn btn-secondary"
+                                          title="Edit"
+                                          th:onclick="'editTest(' + ${test.id} + ')'">
+                                      <i class="bx bx-edit"></i>
+                                  </button> -->
+                                  <button class="action-btn btn-danger"
+                                          title="Delete"
+                                          th:onclick="'deleteTest(' + ${test.id} + ')'">
+                                      <i class="bx bx-trash"></i>
+                                  </button>
+                              </div>
+                          </td>
+                      </tr>
+                      </tbody>
+                  </table>
+                  <div th:if="${#lists.isEmpty(allTests)}" class="empty-state">
+                      <i class="bx bx-clipboard"></i>
+                      <h3>No Tests Created Yet</h3>
+                      <p>Create your first test to get started</p>
+                  </div>
+              </div>
+          </div>
+      </div>
 
 
-        <!-- Create Test Modal -->
+      <!-- Create Test Modal -->
         <div id="createTestModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -764,7 +764,7 @@
                                 <h4 th:text="${subject.name}">Subject Name</h4>
                                 <p>
                                     <span th:text="${subject.totalQuestions}">0</span> Questions •
-                                    <span th:text="${subject.studentsEnrolled}">0</span> Students Enrolled
+<!--                                    <span th:text="${subject.studentsEnrolled}">0</span> Students Enrolled-->
                                 </p>
                             </div>
                         </div>

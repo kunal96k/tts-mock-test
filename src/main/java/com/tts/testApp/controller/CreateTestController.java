@@ -1,7 +1,9 @@
 package com.tts.testApp.controller;
 
 import com.tts.testApp.dto.CreateTestDTO;
+import com.tts.testApp.model.QuestionBank;
 import com.tts.testApp.model.Subject;
+import com.tts.testApp.repository.QuestionBankRepository;
 import com.tts.testApp.repository.SubjectRepository;
 import com.tts.testApp.service.CreateTestService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.validation.Valid;
 
+import java.util.List;
+
 
 @Controller
 @RequestMapping("/admin/tests")
@@ -25,6 +29,7 @@ public class CreateTestController {
 
     private final CreateTestService createTestService;
     private final SubjectRepository subjectRepository;
+    private final QuestionBankRepository questionBankRepository;
 
     /**
      * Handle test creation with validation
@@ -37,15 +42,9 @@ public class CreateTestController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         log.info("Processing test creation request for subject: {}", testDTO.getSubjectName());
-        log.info("Test DTO received - Subject: {}, Type: {}, Questions: {}",
-                testDTO.getSubjectName(), testDTO.getTestType(), testDTO.getTotalQuestions());
 
-        // Validation errors
         if (bindingResult.hasErrors()) {
             log.warn("Validation errors found: {}", bindingResult.getAllErrors());
-            bindingResult.getAllErrors().forEach(error ->
-                    log.error("Validation error: {}", error.getDefaultMessage())
-            );
             redirectAttributes.addFlashAttribute("testError",
                     "Please correct the errors: " + bindingResult.getAllErrors().get(0).getDefaultMessage());
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.testDTO", bindingResult);
@@ -60,14 +59,23 @@ public class CreateTestController {
 
             log.info("Subject found: ID={}, Name={}", subject.getId(), subject.getName());
 
-            // Set the subject ID in DTO for proper mapping
+            // Set the subject ID in DTO
             testDTO.setSubjectId(subject.getId());
 
-            // The testName will be auto-generated in the service/entity
+            // **FIX: Fetch the active question bank for this subject**
+            List<QuestionBank> questionBanks = questionBankRepository
+                    .findBySubjectIdAndActiveTrue(subject.getId());
+
+            if (questionBanks.isEmpty()) {
+                throw new RuntimeException("No active question bank found for subject: " + subject.getName());
+            }
+
+            // Set the question bank ID (use the first active one)
+            testDTO.setQuestionBankId(questionBanks.get(0).getId());
+            log.info("Question Bank found: ID={}", questionBanks.get(0).getId());
+
             // Calculate total marks
             testDTO.calculateTotalMarks();
-
-            log.info("Calling service to create test with total marks: {}", testDTO.getTotalMarks());
 
             // Save the test
             CreateTestDTO savedTest = createTestService.createTest(testDTO);
@@ -75,7 +83,6 @@ public class CreateTestController {
             log.info("Test created successfully - ID: {}, Name: {}, Subject: {}",
                     savedTest.getId(), savedTest.getTestName(), savedTest.getSubjectName());
 
-            // Success message
             redirectAttributes.addFlashAttribute("success",
                     "Test '" + savedTest.getTestName() + "' created successfully!");
 

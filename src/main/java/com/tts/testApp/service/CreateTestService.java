@@ -5,8 +5,10 @@ import com.tts.testApp.exception.DuplicateResourceException;
 import com.tts.testApp.exception.InvalidInputException;
 import com.tts.testApp.exception.ResourceNotFoundException;
 import com.tts.testApp.model.CreateTest;
+import com.tts.testApp.model.QuestionBank;
 import com.tts.testApp.model.Subject;
 import com.tts.testApp.repository.CreateTestRepository;
+import com.tts.testApp.repository.QuestionBankRepository;
 import com.tts.testApp.repository.SubjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ public class CreateTestService {
 
     private final CreateTestRepository createTestRepository;
     private final SubjectRepository subjectRepository;
+    private final QuestionBankRepository questionBankRepository;
 
     /**
      * Create a new test
@@ -39,6 +42,20 @@ public class CreateTestService {
         Subject subject = subjectRepository.findByName(testDTO.getSubjectName())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Subject not found: " + testDTO.getSubjectName()));
+
+        // **AUTO-FETCH QUESTION BANK ID**
+        if (testDTO.getQuestionBankId() == null) {
+            List<QuestionBank> questionBanks = questionBankRepository
+                    .findBySubjectIdAndActiveTrue(subject.getId());
+
+            if (questionBanks.isEmpty()) {
+                throw new InvalidInputException(
+                        "No active question bank found for subject: " + subject.getName());
+            }
+
+            testDTO.setQuestionBankId(questionBanks.get(0).getId());
+            log.info("Auto-assigned Question Bank ID: {}", testDTO.getQuestionBankId());
+        }
 
         // Auto-generate testName from subjectName + testType
         String generatedTestName = testDTO.generateTestName();
@@ -103,15 +120,28 @@ public class CreateTestService {
 
 
     /**
-     * Get test by ID
+     * Get test by ID with question bank ID resolved
      */
-    @Transactional(readOnly = true)
-    public CreateTestDTO getTestById(Long id) {
-        log.info("Fetching test with ID: {}", id);
-        CreateTest test = createTestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Test not found with ID: " + id));
-        return convertToDTO(test);
+    public CreateTestDTO getTestById(Long testId) {
+        log.info("Fetching test with ID: {}", testId);
+
+        CreateTest test = createTestRepository.findById(testId)
+                .orElseThrow(() -> new RuntimeException("Test not found with ID: " + testId));
+
+        CreateTestDTO dto = convertToDTO(test);
+
+        // Get the first active question bank for this subject
+        List<QuestionBank> questionBanks = questionBankRepository
+                .findBySubjectIdAndActiveTrue(test.getSubject().getId());
+
+        if (!questionBanks.isEmpty()) {
+            dto.setQuestionBankId(questionBanks.get(0).getId());
+        }
+
+        log.info("Test found: {} - Subject: {} - QuestionBankId: {}",
+                dto.getTestName(), dto.getSubjectName(), dto.getQuestionBankId());
+
+        return dto;
     }
 
     /**
@@ -311,28 +341,24 @@ public class CreateTestService {
     }
 
     /**
-     * Get all active tests (for student dashboard)
+     * Get all active tests
      */
     public List<CreateTestDTO> getAllActiveTests() {
         log.info("Fetching all active tests");
 
-        try {
-            List<CreateTest> activeTests = createTestRepository.findByActiveTrue();
+        List<CreateTest> tests = createTestRepository.findByActiveTrue();
 
-            log.info("Found {} active tests in database", activeTests.size());
-
-            List<CreateTestDTO> testDTOs = activeTests.stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-
-            log.debug("Converted {} tests to DTOs", testDTOs.size());
-
-            return testDTOs;
-
-        } catch (Exception e) {
-            log.error("Error fetching active tests: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to fetch active tests", e);
-        }
+        return tests.stream()
+                .map(this::convertToDTO)
+                .peek(dto -> {
+                    // Attach question bank ID
+                    List<QuestionBank> qbs = questionBankRepository
+                            .findBySubjectIdAndActiveTrue(dto.getSubjectId());
+                    if (!qbs.isEmpty()) {
+                        dto.setQuestionBankId(qbs.get(0).getId());
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -353,8 +379,6 @@ public class CreateTestService {
 
 
         dto.setId(test.getId());
-        dto.setSubjectName(test.getSubject().getName());
-        dto.setSubjectId(test.getSubject().getId());
         dto.setTestName(test.getTestName());
         dto.setTestType(test.getTestType());
         dto.setTotalQuestions(test.getTotalQuestions());
@@ -366,6 +390,13 @@ public class CreateTestService {
         dto.setActive(test.getActive());
         dto.setCreatedAt(test.getCreatedAt());
         dto.setUpdatedAt(test.getUpdatedAt());
+
+        // Handle Subject relationship
+        if (test.getSubject() != null) {
+            dto.setSubjectName(test.getSubject().getName());
+            dto.setSubjectId(test.getSubject().getId());
+        }
+
         return dto;
     }
 }
