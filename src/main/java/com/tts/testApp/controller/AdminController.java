@@ -1,14 +1,12 @@
 package com.tts.testApp.controller;
 
+import com.tts.testApp.dto.CreateTestDTO;
 import com.tts.testApp.dto.QuestionBankDTO;
 import com.tts.testApp.dto.StudentDTO;
 import com.tts.testApp.dto.SubjectDTO;
 import com.tts.testApp.model.Admin;
 import com.tts.testApp.model.Student;
-import com.tts.testApp.service.AdminService;
-import com.tts.testApp.service.QuestionBankService;
-import com.tts.testApp.service.StudentService;
-import com.tts.testApp.service.SubjectService;
+import com.tts.testApp.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller
@@ -33,6 +32,7 @@ public class AdminController {
     private final SubjectService subjectService;
     private final StudentService studentService;
     private final AdminService adminService;
+    private final CreateTestService createTestService;
     private final QuestionBankService questionBankService;
 
     // ========================================
@@ -66,6 +66,17 @@ public class AdminController {
             if (!model.containsAttribute("questionBankDTO")) {
                 model.addAttribute("questionBankDTO", new QuestionBankDTO());
             }
+            if (!model.containsAttribute("testDTO")) {
+                model.addAttribute("testDTO", new CreateTestDTO());
+            }
+
+            model.addAttribute("subjectsCount", subjects.size());
+
+            // Add subject test names for dropdown
+            List<String> subjectTestNames = subjects.stream()
+                    .map(SubjectDTO::getName)
+                    .collect(Collectors.toList());
+            model.addAttribute("subjectTestNames", subjectTestNames);
 
             log.info("Question banks count: {}", questionBanks.size());
             questionBanks.forEach(qb -> log.info("QB: {} / {}", qb.getFileName(), qb.getSubjectName()));
@@ -74,6 +85,8 @@ public class AdminController {
             model.addAttribute("subjects", subjects);
             model.addAttribute("allSubjects", subjects);
             model.addAttribute("allStudents", allStudents);
+            // All tests - FOR CREATE TEST SECTION TABLE
+            model.addAttribute("allTests", createTestService.getAllTests());
 
             // Add admin name
             if (userDetails != null) {

@@ -4,58 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Online Test - Test Portal</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <link href="https://unpkg.com/boxicons@2.0.7/css/boxicons.min.css" rel="stylesheet" />
-    <link rel="stylesheet" th:href="@{css/start-test.css}">
+    <link rel="stylesheet" th:href="@{/css/start-test.css}">
     <link rel="icon" type="image/png" th:href="@{/images/tts-logo-removebg-preview.png}">
-
 
 </head>
 <body>
-    
+
 <!-- Test Start Screen -->
 <div class="test-start-screen" id="startScreen">
     <div class="start-card">
-        <h1>Java Programming Final Test</h1>
+        <h1 th:text="${testName}">Java Programming Final Test</h1>
         <p>Complete assessment of Java programming concepts</p>
         <div class="test-info-grid">
             <div class="info-item">
                 <i class='bx bx-question-mark'></i>
                 <div>
                     <h4>Total Questions</h4>
-                    <p>30</p>
+                    <p th:text="${totalQuestions}">30</p>
                 </div>
             </div>
             <div class="info-item">
                 <i class='bx bx-time'></i>
                 <div>
                     <h4>Duration</h4>
-                    <p>30 Minutes</p>
+                    <p><span th:text="${duration}">30</span> Minutes</p>
                 </div>
             </div>
             <div class="info-item">
                 <i class='bx bx-trophy'></i>
                 <div>
                     <h4>Passing Marks</h4>
-                    <p>35%</p>
+                    <p><span th:text="${passingPercentage}">35</span>%</p>
                 </div>
             </div>
             <div class="info-item">
                 <i class='bx bx-edit'></i>
                 <div>
                     <h4>Marks per Question</h4>
-                    <p>1 Mark</p>
+                    <p><span th:text="${marksPerQuestion}">1</span> Mark</p>
                 </div>
             </div>
         </div>
+
+        <div class="question-stats" th:if="${questionBankStats != null}">
+            <div class="stat-box">
+                <i class='bx bx-data'></i>
+                <span>Question Bank: <strong th:text="${questionBankStats.totalQuestions}">150</strong> questions available</span>
+            </div>
+            <div class="difficulty-distribution">
+                <span class="difficulty-tag easy">Easy: <strong th:text="${questionBankStats.easyQuestions}">50</strong></span>
+                <span class="difficulty-tag medium">Medium: <strong th:text="${questionBankStats.mediumQuestions}">70</strong></span>
+                <span class="difficulty-tag hard">Hard: <strong th:text="${questionBankStats.hardQuestions}">30</strong></span>
+            </div>
+        </div>
+
         <div class="instructions">
             <h3><i class='bx bx-info-circle'></i> Important Instructions</h3>
             <ul>
                 <li>Test will automatically enter fullscreen mode when started</li>
-                <li>You have <strong>3 attempts</strong> to switch tabs - after that, test will auto-submit</li>
-                <li>Timer will countdown from 30 minutes - test auto-submits when time expires</li>
+                <li>You have <strong th:text="${tabSwitchLimit}">3</strong> attempts to switch tabs - after that, test will auto-submit</li>
+                <li>Timer will countdown from <span th:text="${duration}">30</span> minutes - test auto-submits when time expires</li>
+                <li>Questions are randomly selected from the question bank to ensure fairness</li>
                 <li>Click on question numbers in the left sidebar to navigate</li>
                 <li>Green indicates answered questions, gray indicates unanswered</li>
                 <li>Review all answers before final submission</li>
+                <li>Once submitted, you cannot change your answers</li>
             </ul>
         </div>
         <button class="btn btn-primary" onclick="startTest()">
@@ -65,10 +81,10 @@
 </div>
 
 <!-- Test Screen -->
-<div class="test-screen" id="testScreen">
+<div class="test-screen" id="testScreen" style="display: none;">
     <div class="test-header">
         <div class="test-title">
-            <h2>Java Programming Final Test</h2>
+            <h2 th:text="${testName}">Java Programming Final Test</h2>
             <p>Answer all questions carefully</p>
         </div>
         <div class="timer-display">
@@ -79,7 +95,7 @@
 
     <div class="warning-banner" id="warningBanner">
         <div class="warning-text">
-            ⚠️ WARNING: Tab switching detected! You have <span id="attemptsLeft">3</span> attempts remaining. After 3 attempts, your test will be automatically submitted. ⚠️
+            ⚠️ WARNING: Tab switching detected! You have <span id="attemptsLeft">3</span> attempts remaining. After <span th:text="${tabSwitchLimit}">3</span> attempts, your test will be automatically submitted. ⚠️
         </div>
     </div>
 
@@ -121,17 +137,17 @@
 </div>
 
 <!-- Result Screen -->
-<div class="result-screen" id="resultScreen">
+<div class="result-screen" id="resultScreen" style="display: none;">
     <div class="result-container">
         <div class="result-header">
             <div class="report-badge">
                 <i class='bx bx-bar-chart-alt-2'></i>
                 <span>Performance Report</span>
             </div>
-            
+
             <div class="institute-header">
                 <div class="institute-logo">
-                    <img th:src="@{/images/tts-logo-removebg-preview.png}" alt="TTS"  src=""/>
+                    <img th:src="@{/images/tts-logo-removebg-preview.png}" alt="TTS" />
                 </div>
                 <div class="institute-info">
                     <h3>TechnoKraft</h3>
@@ -139,7 +155,7 @@
                     <p>Online Assessment Platform</p>
                 </div>
             </div>
-            
+
             <div class="test-metadata">
                 <div class="meta-item">
                     <i class='bx bx-calendar'></i>
@@ -159,18 +175,18 @@
                     <i class='bx bx-book-open'></i>
                     <div>
                         <span class="meta-label">Assessment</span>
-                        <span class="meta-value">Java Programming</span>
+                        <span class="meta-value" th:text="${testName}">Java Programming</span>
                     </div>
                 </div>
             </div>
-            
+
             <div class="score-summary-box">
                 <div class="score-left">
                     <div class="score-circle">
                         <svg viewBox="0 0 200 200">
                             <circle cx="100" cy="100" r="90" fill="none" stroke="#e2e8f0" stroke-width="12"/>
-                            <circle id="scoreCircle" cx="100" cy="100" r="90" fill="none" stroke="url(#gradient)" 
-                                    stroke-width="12" stroke-linecap="round" 
+                            <circle id="scoreCircle" cx="100" cy="100" r="90" fill="none" stroke="url(#gradient)"
+                                    stroke-width="12" stroke-linecap="round"
                                     stroke-dasharray="565.48" stroke-dashoffset="565.48"
                                     transform="rotate(-90 100 100)"/>
                             <defs>
@@ -181,27 +197,27 @@
                             </defs>
                         </svg>
                         <div class="score-text">
-                            <div class="score-display" id="scoreValue">85</div>
+                            <div class="score-display" id="scoreValue">0</div>
                             <div class="score-percent">%</div>
                         </div>
                     </div>
                     <div class="score-subtitle">Overall Score</div>
                 </div>
-                
+
                 <div class="score-right">
                     <div class="score-detail-item">
                         <span class="detail-label">Marks Obtained</span>
-                        <span class="detail-value"><strong id="marksObtained">25</strong> / <strong id="totalMarks">30</strong></span>
+                        <span class="detail-value"><strong id="marksObtained">0</strong> / <strong id="totalMarks">30</strong></span>
                     </div>
                     <div class="score-detail-item">
                         <span class="detail-label">Grade</span>
-                        <span class="detail-value grade-display" id="gradeBadge">A</span>
+                        <span class="detail-value grade-display" id="gradeBadge">-</span>
                     </div>
                     <div class="score-detail-item">
                         <span class="detail-label">Status</span>
                         <div class="result-verdict pass" id="verdict">
                             <i class='bx bx-check-circle'></i>
-                            PASSED
+                            PENDING
                         </div>
                     </div>
                 </div>
@@ -211,22 +227,22 @@
         <div class="result-stats">
             <div class="stat-card">
                 <i class='bx bx-check-circle stat-icon correct'></i>
-                <div class="stat-value" id="correctCount">25</div>
+                <div class="stat-value" id="correctCount">0</div>
                 <div class="stat-label">Correct Answers</div>
             </div>
             <div class="stat-card">
                 <i class='bx bx-x-circle stat-icon wrong'></i>
-                <div class="stat-value" id="wrongCount">3</div>
+                <div class="stat-value" id="wrongCount">0</div>
                 <div class="stat-label">Wrong Answers</div>
             </div>
             <div class="stat-card">
                 <i class='bx bx-help-circle stat-icon unanswered'></i>
-                <div class="stat-value" id="unansweredCount">2</div>
+                <div class="stat-value" id="unansweredCount">0</div>
                 <div class="stat-label">Unanswered</div>
             </div>
             <div class="stat-card">
                 <i class='bx bx-time stat-icon time'></i>
-                <div class="stat-value" id="timeTaken">28:45</div>
+                <div class="stat-value" id="timeTaken">00:00</div>
                 <div class="stat-label">Time Taken</div>
             </div>
         </div>
@@ -240,7 +256,7 @@
                 <button class="btn btn-success" onclick="emailReport()">
                     <i class='bx bx-envelope'></i> Email Report
                 </button>
-                <button class="btn btn-secondary" onclick=backToDashboard()>
+                <button class="btn btn-secondary" onclick="backToDashboard()">
                     <i class='bx bx-home'></i> Dashboard
                 </button>
             </div>
@@ -261,8 +277,51 @@
     </div>
 </div>
 
-<script th:src="@{js/start-test.js}"></script>
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="loader"></div>
+        <h3>Loading Questions...</h3>
+        <p>Please wait while we prepare your test</p>
+    </div>
+</div>
+
+<!-- CRITICAL: Configure test data BEFORE loading JavaScript -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+   const testConfig = {
+       testId: [[${testId}]],
+       questionBankId: [[${questionBankId}]],
+       testName: /*[[${testName}]]*/ 'Default Test',
+       totalQuestions: [[${totalQuestions}]],
+       duration: [[${duration}]] * 60, // Convert minutes to seconds
+       passingPercentage: [[${passingPercentage}]],
+       marksPerQuestion: [[${marksPerQuestion}]],
+       tabSwitchLimit: [[${tabSwitchLimit}]],
+       studentId: [[${studentId}]]
+   };
+
+
+    // Add this to verify configuration is loaded
+    console.log('Test Configuration:', testConfig);
+
+    // Add event listener for start button
+    document.querySelector('.btn-primary').addEventListener('click', function() {
+        if (!testConfig.testId || !testConfig.questionBankId) {
+            alert('Error: Test configuration not properly loaded');
+            return;
+        }
+        startTest();
+    });
+
+       /*]]>*/
+</script>
+
+<!-- Load jsPDF library for PDF generation -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Load JavaScript files - testConfig is already initialized above -->
+<script th:src="@{/js/start-test.js}"></script>
+
 </body>
 </html>
-

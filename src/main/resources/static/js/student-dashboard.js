@@ -42,11 +42,9 @@ window.addEventListener('click', function(e) {
 });
 
 // Start test function - Modified to show alert instead
-function startTest(testName, questions, duration) {
-    alert(`Starting ${testName} test!\n\nQuestions: ${questions}\nDuration: ${duration} minutes\n\nThis will redirect to a separate test page.`);
-    // In production, you would redirect to test page:
-    // window.location.href = `test.html?name=${encodeURIComponent(testName)}&questions=${questions}&duration=${duration}`;
-}
+function startTest(testId) {
+            window.location.href = `/test/start/${testId}`;
+        }
 
 // View detailed result - Modified to remove test logic
 function viewDetailedResult(subject, score, status) {

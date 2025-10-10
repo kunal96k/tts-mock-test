@@ -33,4 +33,5 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBank, Long
 
     @Query("SELECT SUM(qb.totalQuestions) FROM QuestionBank qb WHERE qb.subject.id = :subjectId AND qb.active = true")
     Integer sumTotalQuestionsBySubjectId(@Param("subjectId") Long subjectId);
+
 }

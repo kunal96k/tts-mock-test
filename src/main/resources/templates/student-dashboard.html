@@ -182,85 +182,83 @@
                     <div class="section-header">
                         <h2 class="section-title">Available Tests</h2>
                     </div>
-                    
-                    <div class="test-card">
-                        <div class="test-info">
-                            <div class="test-icon">
-                                <i class="bx bxl-java"></i>
-                            </div>
-                            <div class="test-details">
-                                <h4>Java Programming Final Test</h4>
-                                <p>Test your Java programming knowledge</p>
-                                <div class="test-meta">
-                                    <span><i class="bx bx-question-mark"></i> 30 Questions</span>
-                                    <span><i class="bx bx-time"></i> 45 Minutes</span>
-                                    <span><i class="bx bx-trophy"></i> Pass: 60%</span>
-                                </div>
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" onclick="window.location.href = '/start-test';">
-                            <i class="bx bx-play"></i> Start Test
-                        </button>
-                    </div>
 
-                    <div class="test-card">
-                        <div class="test-info">
-                            <div class="test-icon">
-                                <i class="bx bxl-python"></i>
-                            </div>
-                            <div class="test-details">
-                                <h4>Python MCQ Test</h4>
-                                <p>Multiple choice questions on Python basics</p>
-                                <div class="test-meta">
-                                    <span><i class="bx bx-question-mark"></i> 25 Questions</span>
-                                    <span><i class="bx bx-time"></i> 30 Minutes</span>
-                                    <span><i class="bx bx-trophy"></i> Pass: 60%</span>
-                                </div>
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" onclick="window.location.href = 'start-test.html';">
-                            <i class="bx bx-play"></i> Start Test
-                        </button>
-                    </div>
+                    <!-- Test Cards Container -->
+                    <div class="tests-container">
 
-                    <div class="test-card">
-                        <div class="test-info">
-                            <div class="test-icon">
-                                <i class="bx bx-data"></i>
-                            </div>
-                            <div class="test-details">
-                                <h4>Data Structures & Algorithms</h4>
-                                <p>Comprehensive DSA assessment</p>
-                                <div class="test-meta">
-                                    <span><i class="bx bx-question-mark"></i> 40 Questions</span>
-                                    <span><i class="bx bx-time"></i> 60 Minutes</span>
-                                    <span><i class="bx bx-trophy"></i> Pass: 65%</span>
+                        <!-- Test Card Template -->
+                        <div class="test-card" data-test-id="1">
+                            <div class="test-info">
+                                <div class="test-icon"><i class="bx bxl-java"></i></div>
+                                <div class="test-details">
+                                    <h4>Java Programming Final Test</h4>
+                                    <p>Test your Java programming knowledge</p>
+                                    <div class="test-meta">
+                                        <span><i class="bx bx-question-mark"></i> 30 Questions</span>
+                                        <span><i class="bx bx-time"></i> 45 Minutes</span>
+                                        <span><i class="bx bx-trophy"></i> Pass: 60%</span>
+                                    </div>
                                 </div>
                             </div>
+                            <button class="btn btn-primary" onclick="startTest(1)">
+                                <i class="bx bx-play"></i> Start Test
+                            </button>
                         </div>
-                        <button class="btn btn-primary" onclick="window.location.href = 'start-test.html';">
-                            <i class="bx bx-play"></i> Start Test
-                        </button>
-                    </div>
 
-                    <div class="test-card">
-                        <div class="test-info">
-                            <div class="test-icon">
-                                <i class="bx bx-code-alt"></i>
-                            </div>
-                            <div class="test-details">
-                                <h4>Web Development Fundamentals</h4>
-                                <p>HTML, CSS, and JavaScript basics</p>
-                                <div class="test-meta">
-                                    <span><i class="bx bx-question-mark"></i> 20 Questions</span>
-                                    <span><i class="bx bx-time"></i> 35 Minutes</span>
-                                    <span><i class="bx bx-trophy"></i> Pass: 60%</span>
+                        <div class="test-card" data-test-id="2">
+                            <div class="test-info">
+                                <div class="test-icon"><i class="bx bxl-python"></i></div>
+                                <div class="test-details">
+                                    <h4>Python MCQ Test</h4>
+                                    <p>Multiple choice questions on Python basics</p>
+                                    <div class="test-meta">
+                                        <span><i class="bx bx-question-mark"></i> 25 Questions</span>
+                                        <span><i class="bx bx-time"></i> 30 Minutes</span>
+                                        <span><i class="bx bx-trophy"></i> Pass: 60%</span>
+                                    </div>
                                 </div>
                             </div>
+                            <button class="btn btn-primary" onclick="startTest(2)">
+                                <i class="bx bx-play"></i> Start Test
+                            </button>
                         </div>
-                        <button class="btn btn-primary" onclick="window.location.href = 'start-test.html';">
-                            <i class="bx bx-play"></i> Start Test
-                        </button>
+
+                        <div class="test-card" data-test-id="3">
+                            <div class="test-info">
+                                <div class="test-icon"><i class="bx bx-data"></i></div>
+                                <div class="test-details">
+                                    <h4>Data Structures & Algorithms</h4>
+                                    <p>Comprehensive DSA assessment</p>
+                                    <div class="test-meta">
+                                        <span><i class="bx bx-question-mark"></i> 40 Questions</span>
+                                        <span><i class="bx bx-time"></i> 60 Minutes</span>
+                                        <span><i class="bx bx-trophy"></i> Pass: 65%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="startTest(3)">
+                                <i class="bx bx-play"></i> Start Test
+                            </button>
+                        </div>
+
+                        <div class="test-card" data-test-id="4">
+                            <div class="test-info">
+                                <div class="test-icon"><i class="bx bx-code-alt"></i></div>
+                                <div class="test-details">
+                                    <h4>Web Development Fundamentals</h4>
+                                    <p>HTML, CSS, and JavaScript basics</p>
+                                    <div class="test-meta">
+                                        <span><i class="bx bx-question-mark"></i> 20 Questions</span>
+                                        <span><i class="bx bx-time"></i> 35 Minutes</span>
+                                        <span><i class="bx bx-trophy"></i> Pass: 60%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="startTest(4)">
+                                <i class="bx bx-play"></i> Start Test
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -481,32 +479,33 @@
     </div>
 
     <script>
-        // Get CSRF token and header from meta tags
-        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute("content");
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute("content");
 
-        // Example for fetch
-        function secureFetch(url, options = {}) {
-            if (!options.headers) {
-                options.headers = {};
-            }
-            options.headers[csrfHeader] = csrfToken;
-            return fetch(url, options);
-        }
+       // Get CSRF token and header from meta tags
+       const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute("content");
+       const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute("content");
 
-        // Example for XMLHttpRequest
-        function secureAjaxPost(url, data, callback) {
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", url, true);
-            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-            xhr.setRequestHeader(csrfHeader, csrfToken);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    callback(JSON.parse(xhr.responseText));
-                }
-            };
-            xhr.send(JSON.stringify(data));
-        }
+       // Example for fetch
+       function secureFetch(url, options = {}) {
+           if (!options.headers) {
+               options.headers = {};
+           }
+           options.headers[csrfHeader] = csrfToken;
+           return fetch(url, options);
+       }
+
+       // Example for XMLHttpRequest
+       function secureAjaxPost(url, data, callback) {
+           const xhr = new XMLHttpRequest();
+           xhr.open("POST", url, true);
+           xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+           xhr.setRequestHeader(csrfHeader, csrfToken);
+           xhr.onreadystatechange = function() {
+               if (xhr.readyState === 4 && xhr.status === 200) {
+                   callback(JSON.parse(xhr.responseText));
+               }
+           };
+           xhr.send(JSON.stringify(data));
+       }
     </script>
 
     <script th:src="@{/js/student-dashboard.js}"></script>

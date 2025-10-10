@@ -1,5 +1,6 @@
 package com.tts.testApp.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,11 +10,8 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
 
@@ -22,7 +20,6 @@ import org.springframework.security.web.header.writers.frameoptions.XFrameOption
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-
 
     private final CustomUserDetailsService userDetailsService;
     private final CustomLoginSuccessHandler successHandler;
@@ -43,8 +40,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration authConfig) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
@@ -52,21 +48,17 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/","/h2-console/**", "/signup", "/login", "/forgot-password", "/reset-password")
+                        .ignoringRequestMatchers("/", "/h2-console/**", "/signup", "/login", "/forgot-password", "/reset-password")
                 )
                 .headers(headers -> headers
-                        .addHeaderWriter(
-                                new XFrameOptionsHeaderWriter(
-                                        XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN
-                                )
-                        )
+                        .addHeaderWriter(new XFrameOptionsHeaderWriter(XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/","/h2-console/**","/signup", "/login", "/forgot-password", "/reset-password").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**","/start-test/**").permitAll()
+                        .requestMatchers("/", "/h2-console/**", "/signup", "/login", "/forgot-password", "/reset-password").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/start-test/**").permitAll()
                         .requestMatchers("/admin-dashboard/**").hasRole("ADMIN")
                         .requestMatchers("/student-dashboard/**").hasRole("STUDENT")
-//                        .requestMatchers("/start-test/**").permitAll()
+                        .requestMatchers("/api/test/**").hasRole("STUDENT")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -85,6 +77,17 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception -> exception
                         .accessDeniedHandler(customAccessDeniedHandler)
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            // ✅ Different behavior for API calls
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.setContentType("application/json");
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.getWriter().write("{\"success\":false,\"error\":\"Unauthorized or session expired\"}");
+                            } else {
+                                // Default behavior: redirect to login page for UI
+                                response.sendRedirect("/login");
+                            }
+                        })
                 )
                 .sessionManagement(session -> session
                         .maximumSessions(1)

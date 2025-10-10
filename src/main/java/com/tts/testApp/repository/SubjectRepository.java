@@ -25,4 +25,5 @@ public interface SubjectRepository extends JpaRepository<Subject, Long> {
     List<Subject> findAllOrderByCreatedAtDesc();
 
     long countByActiveTrue();
+
 }

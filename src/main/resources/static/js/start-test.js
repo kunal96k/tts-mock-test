@@ -1,9 +1,11 @@
-const testConfig = {
-    totalQuestions: 30,
-    duration: 30 * 60,
-    tabSwitchLimit: 3
-};
+// ==================== UTILITY FUNCTIONS ====================
+function getCsrfToken() {
+    const token = document.querySelector('meta[name="_csrf"]');
+    const header = document.querySelector('meta[name="_csrf_header"]');
+    return token && header ? { header: header.content, token: token.content } : null;
+}
 
+// ==================== TEST CONFIGURATION ====================
 let testState = {
     currentQuestion: 0,
     answers: {},
@@ -12,37 +14,228 @@ let testState = {
     timerInterval: null,
     startTime: null,
     isTestActive: false,
-    fullscreenExited: false
+    fullscreenExited: false,
+    questions: []
 };
 
-const questions = Array.from({length: 30}, (_, i) => ({
-    id: i + 1,
-    question: `What is the output of the following Java code snippet? (Question ${i + 1})`,
-    options: [
-        'Option A: Compilation Error',
-        'Option B: Runtime Exception',
-        'Option C: Prints "Hello World"',
-        'Option D: No output'
-    ],
-    // correctAnswer: Math.floor(Math.random() * 4)
-    correctAnswer: 0
-}));
+// Log initial configuration
+console.log('========== TEST CONFIGURATION ==========');
+console.log('testConfig:', testConfig);
+console.log('testState initialized:', testState);
 
-function startTest() {
-    document.getElementById('startScreen').style.display = 'none';
-    document.getElementById('testScreen').style.display = 'block';
-    testState.isTestActive = true;
-    enterFullscreen();
-    initializeTest();
-    startTimer();
-    setupTabSwitchDetection();
-    setupFullscreenDetection();
+// ==================== TEST INITIALIZATION ====================
+async function startTest() {
+    console.log('========== START TEST CLICKED ==========');
+    console.log('testConfig at start:', testConfig);
+
+    try {
+        // Validate configuration before proceeding
+        if (!testConfig.testId) {
+            console.error('ERROR: testId is missing');
+            alert('Error: Test ID is not configured. Please refresh and try again.');
+            return;
+        }
+
+        if (!testConfig.questionBankId) {
+            console.error('ERROR: questionBankId is missing');
+            alert('Error: Question Bank ID is not configured. Please refresh and try again.');
+            return;
+        }
+
+        if (!testConfig.totalQuestions || testConfig.totalQuestions === 0) {
+            console.error('ERROR: totalQuestions is missing or zero');
+            alert('Error: Total questions not configured. Please refresh and try again.');
+            return;
+        }
+
+        console.log('Configuration validated successfully');
+        showLoadingState();
+
+        // Prepare request payload
+        const requestBody = {
+            questionBankId: testConfig.questionBankId,
+            testName: testConfig.testName || 'Online Test',
+            totalQuestions: testConfig.totalQuestions,
+            durationMinutes: testConfig.duration / 60,
+            passingPercentage: testConfig.passingPercentage || 35,
+            tabSwitchLimit: testConfig.tabSwitchLimit || 3
+        };
+
+        console.log('Request payload:', requestBody);
+
+        // Prepare headers
+        const csrf = getCsrfToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrf) {
+            headers[csrf.header] = csrf.token;
+            console.log('CSRF token added to headers');
+        } else {
+            console.warn('WARNING: CSRF token not found');
+        }
+
+        console.log('Sending POST request to /api/test/initialize...');
+
+        // Make API call
+        const response = await fetch('/api/test/initialize', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(requestBody)
+        });
+
+        console.log('Response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            redirected: response.redirected
+        });
+
+        // Check for authentication redirect
+        if (response.status === 401 || response.redirected) {
+            console.error('ERROR: Authentication failed or session expired');
+            alert('Your session has expired. Please login again.');
+            window.location.href = '/login';
+            return;
+        }
+
+        // Validate content type
+        const contentType = response.headers.get('content-type');
+        console.log('Response content-type:', contentType);
+
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('ERROR: Expected JSON response but got:', contentType);
+            const text = await response.text();
+            console.error('Response body:', text.substring(0, 500));
+            throw new Error('Server returned non-JSON response. Please check server logs.');
+        }
+
+        // Parse response
+        const data = await response.json();
+        console.log('========== API RESPONSE ==========');
+        console.log('Response data:', data);
+
+        if (!response.ok) {
+            console.error('ERROR: Response not OK');
+            console.error('Error from server:', data.error);
+            throw new Error(data.error || `Server error: ${response.status}`);
+        }
+
+        if (!data.success) {
+            console.error('ERROR: Success flag is false');
+            console.error('Error message:', data.error);
+            throw new Error(data.error || 'Failed to initialize test');
+        }
+
+        // Validate questions
+        if (!data.questions || !Array.isArray(data.questions)) {
+            console.error('ERROR: Questions array is missing or invalid');
+            console.error('Data structure:', Object.keys(data));
+            throw new Error('Invalid response format: questions array missing');
+        }
+
+        if (data.questions.length === 0) {
+            console.error('ERROR: Questions array is empty');
+            throw new Error('No questions available for this test');
+        }
+
+        console.log(`Successfully received ${data.questions.length} questions`);
+
+        // Log first question as sample
+        console.log('Sample question:', {
+            id: data.questions[0].id,
+            questionText: data.questions[0].questionText?.substring(0, 50) + '...',
+            hasOptions: {
+                A: !!data.questions[0].optionA,
+                B: !!data.questions[0].optionB,
+                C: !!data.questions[0].optionC,
+                D: !!data.questions[0].optionD
+            },
+            correctAnswer: data.questions[0].correctAnswer,
+            marks: data.questions[0].marks,
+            difficulty: data.questions[0].difficultyLevel
+        });
+
+        // Map questions to test format
+        testState.questions = data.questions.map((q, index) => {
+            const mapped = {
+                id: q.id,
+                questionNumber: index + 1,
+                question: q.questionText,
+                options: [q.optionA, q.optionB, q.optionC, q.optionD],
+                marks: q.marks || 1,
+                difficultyLevel: q.difficultyLevel || 'MEDIUM'
+            };
+
+            // Validate question structure
+            if (!mapped.question) {
+                console.error(`ERROR: Question ${index + 1} has no text`);
+            }
+            if (mapped.options.some(opt => !opt)) {
+                console.warn(`WARNING: Question ${index + 1} has missing options`);
+            }
+
+            return mapped;
+        });
+
+        console.log('Questions mapped successfully:', testState.questions.length);
+        console.log('Test state updated:', {
+            totalQuestions: testState.questions.length,
+            currentQuestion: testState.currentQuestion,
+            answersCount: Object.keys(testState.answers).length
+        });
+
+        // Hide start screen and show test screen
+        console.log('Switching to test screen...');
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('testScreen').style.display = 'block';
+
+        // Activate test
+        testState.isTestActive = true;
+        testState.timeRemaining = testConfig.duration;
+
+        // Initialize UI
+        console.log('Initializing test UI...');
+        enterFullscreen();
+        initializeTest();
+        startTimer();
+        setupTabSwitchDetection();
+        setupFullscreenDetection();
+
+        console.log('========== TEST STARTED SUCCESSFULLY ==========');
+
+    } catch (error) {
+        console.error('========== TEST START ERROR ==========');
+        console.error('Error:', error);
+        console.error('Error stack:', error.stack);
+
+        alert(`Failed to start test:\n\n${error.message}\n\nPlease check the console for details and contact administrator if the problem persists.`);
+        hideLoadingState();
+    }
 }
 
+function showLoadingState() {
+    console.log('Showing loading state...');
+    const startButton = document.querySelector('.btn-primary');
+    if (startButton) {
+        startButton.disabled = true;
+        startButton.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Loading Questions...';
+    }
+}
+
+function hideLoadingState() {
+    console.log('Hiding loading state...');
+    const startButton = document.querySelector('.btn-primary');
+    if (startButton) {
+        startButton.disabled = false;
+        startButton.innerHTML = '<i class="bx bx-play"></i> Start Test in Fullscreen';
+    }
+}
+
+// ==================== FULLSCREEN MANAGEMENT ====================
 function enterFullscreen() {
+    console.log('Entering fullscreen mode...');
     const elem = document.documentElement;
     if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
+        elem.requestFullscreen().catch(err => console.error('Fullscreen error:', err));
     } else if (elem.webkitRequestFullscreen) {
         elem.webkitRequestFullscreen();
     } else if (elem.msRequestFullscreen) {
@@ -51,8 +244,9 @@ function enterFullscreen() {
 }
 
 function exitFullscreen() {
+    console.log('Exiting fullscreen mode...');
     if (document.exitFullscreen) {
-        document.exitFullscreen().catch(err => console.log('Exit fullscreen error:', err));
+        document.exitFullscreen().catch(err => console.error('Exit fullscreen error:', err));
     } else if (document.webkitExitFullscreen) {
         document.webkitExitFullscreen();
     } else if (document.msExitFullscreen) {
@@ -61,14 +255,19 @@ function exitFullscreen() {
 }
 
 function setupFullscreenDetection() {
+    console.log('Setting up fullscreen detection...');
     const handleFullscreenChange = () => {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && 
+        if (!document.fullscreenElement && !document.webkitFullscreenElement &&
             !document.mozFullScreenElement && testState.isTestActive && !testState.fullscreenExited) {
+
+            console.warn('WARNING: Fullscreen exited by user');
             testState.fullscreenExited = true;
             testState.tabSwitches++;
             showWarningBanner();
-            
+
             if (testState.tabSwitches >= testConfig.tabSwitchLimit) {
+                console.error('CRITICAL: Tab switch limit exceeded');
+                document.removeEventListener('fullscreenchange', handleFullscreenChange);
                 autoSubmitTest('Fullscreen exit limit exceeded');
             }
         }
@@ -79,17 +278,29 @@ function setupFullscreenDetection() {
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
 }
 
+// ==================== TEST RENDERING ====================
 function initializeTest() {
+    console.log('Initializing test...');
     testState.startTime = Date.now();
+    testState.timeRemaining = testConfig.duration;
+
+    console.log('Rendering question navigator...');
     renderQuestionNavigator();
+
+    console.log('Rendering first question...');
     renderQuestion();
 }
 
 function renderQuestionNavigator() {
     const nav = document.getElementById('questionNav');
-    nav.innerHTML = questions.map((_, i) => {
+    if (!nav) {
+        console.error('ERROR: questionNav element not found');
+        return;
+    }
+
+    nav.innerHTML = testState.questions.map((q, i) => {
         let classes = 'question-nav-btn';
-        if (testState.answers[i + 1] !== undefined) {
+        if (testState.answers[q.id] !== undefined) {
             classes += ' answered';
         }
         if (i === testState.currentQuestion) {
@@ -97,28 +308,45 @@ function renderQuestionNavigator() {
         }
         return `<button class="${classes}" onclick="goToQuestion(${i})">${i + 1}</button>`;
     }).join('');
+
+    console.log('Question navigator rendered with', testState.questions.length, 'buttons');
 }
 
 function renderQuestion() {
-    const q = questions[testState.currentQuestion];
+    const q = testState.questions[testState.currentQuestion];
     const container = document.getElementById('questionContainer');
-    
+
+    if (!container) {
+        console.error('ERROR: questionContainer element not found');
+        return;
+    }
+
+    if (!q) {
+        console.error('ERROR: No question at index', testState.currentQuestion);
+        return;
+    }
+
+    console.log('Rendering question', q.questionNumber, '/', testConfig.totalQuestions);
+
     container.innerHTML = `
         <div class="question-card">
             <div class="question-header">
-                <span class="question-number">Question ${q.id} of ${testConfig.totalQuestions}</span>
-                <span class="question-marks">1 Mark</span>
+                <span class="question-number">Question ${q.questionNumber} of ${testConfig.totalQuestions}</span>
+                <span class="question-marks">${q.marks} Mark${q.marks > 1 ? 's' : ''}</span>
+                ${q.difficultyLevel ? `<span class="difficulty-badge ${q.difficultyLevel.toLowerCase()}">${q.difficultyLevel}</span>` : ''}
             </div>
             <div class="question-text">${q.question}</div>
             <div class="options">
-                ${q.options.map((opt, i) => `
-                    <label class="option ${testState.answers[q.id] === i ? 'selected' : ''}">
-                        <input type="radio" name="question${q.id}" value="${i}" 
-                               ${testState.answers[q.id] === i ? 'checked' : ''}
-                               onchange="saveAnswer(${q.id}, ${i})">
-                        <span class="option-text">${opt}</span>
+                ${q.options.map((opt, i) => {
+                    const optionLetter = String.fromCharCode(65 + i);
+                    return `
+                    <label class="option ${testState.answers[q.id] === optionLetter ? 'selected' : ''}">
+                        <input type="radio" name="question${q.id}" value="${optionLetter}"
+                               ${testState.answers[q.id] === optionLetter ? 'checked' : ''}
+                               onchange="saveAnswer(${q.id}, '${optionLetter}')">
+                        <span class="option-text"><strong>${optionLetter}.</strong> ${opt}</span>
                     </label>
-                `).join('')}
+                `}).join('')}
             </div>
         </div>
     `;
@@ -126,17 +354,25 @@ function renderQuestion() {
     updateNavigationButtons();
 }
 
-function saveAnswer(questionId, optionIndex) {
-    testState.answers[questionId] = optionIndex;
-    
+function saveAnswer(questionId, optionLetter) {
+    console.log('Saving answer: Question', questionId, '= Option', optionLetter);
+    testState.answers[questionId] = optionLetter;
+
     const labels = document.querySelectorAll('.option');
     labels.forEach(label => label.classList.remove('selected'));
-    event.target.closest('.option').classList.add('selected');
-    
+
+    if (typeof event !== 'undefined' && event.target) {
+        const option = event.target.closest('.option');
+        if (option) option.classList.add('selected');
+    }
+
     renderQuestionNavigator();
 }
 
+// ==================== NAVIGATION ====================
 function goToQuestion(index) {
+    if (index < 0 || index >= testState.questions.length) return;
+    console.log('Navigating to question', index + 1);
     testState.currentQuestion = index;
     renderQuestion();
     renderQuestionNavigator();
@@ -153,7 +389,7 @@ function previousQuestion() {
 }
 
 function nextQuestion() {
-    if (testState.currentQuestion < questions.length - 1) {
+    if (testState.currentQuestion < testState.questions.length - 1) {
         testState.currentQuestion++;
         renderQuestion();
         renderQuestionNavigator();
@@ -162,25 +398,34 @@ function nextQuestion() {
 }
 
 function updateNavigationButtons() {
-    document.getElementById('prevBtn').style.display = 
-        testState.currentQuestion === 0 ? 'none' : 'inline-flex';
-    
-    if (testState.currentQuestion === questions.length - 1) {
-        document.getElementById('nextBtn').style.display = 'none';
-        document.getElementById('submitBtn').style.display = 'inline-flex';
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (prevBtn) {
+        prevBtn.style.display = testState.currentQuestion === 0 ? 'none' : 'inline-flex';
+    }
+
+    if (testState.currentQuestion === testState.questions.length - 1) {
+        if (nextBtn) nextBtn.style.display = 'none';
+        if (submitBtn) submitBtn.style.display = 'inline-flex';
     } else {
-        document.getElementById('nextBtn').style.display = 'inline-flex';
-        document.getElementById('submitBtn').style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'inline-flex';
+        if (submitBtn) submitBtn.style.display = 'none';
     }
 }
 
+// ==================== TIMER ====================
 function startTimer() {
+    console.log('Starting timer with', testState.timeRemaining, 'seconds');
     updateTimerDisplay();
+
     testState.timerInterval = setInterval(() => {
         testState.timeRemaining--;
         updateTimerDisplay();
-        
+
         if (testState.timeRemaining <= 0) {
+            console.warn('WARNING: Time expired');
             clearInterval(testState.timerInterval);
             autoSubmitTest('Time expired');
         }
@@ -188,34 +433,31 @@ function startTimer() {
 }
 
 function updateTimerDisplay() {
+    const timerElement = document.getElementById('timerValue');
+    if (!timerElement) return;
+
     const minutes = Math.floor(testState.timeRemaining / 60);
     const seconds = testState.timeRemaining % 60;
     const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    document.getElementById('timerValue').textContent = display;
-    
+
+    timerElement.textContent = display;
+
     if (testState.timeRemaining <= 300) {
-        document.getElementById('timerValue').classList.add('warning');
+        timerElement.classList.add('warning');
     }
 }
 
-function showWarningBanner() {
-    const banner = document.getElementById('warningBanner');
-    document.getElementById('attemptsLeft').textContent = 
-        testConfig.tabSwitchLimit - testState.tabSwitches;
-    banner.classList.add('show');
-    
-    setTimeout(() => {
-        banner.classList.remove('show');
-    }, 5000);
-}
-
+// ==================== TAB SWITCHING DETECTION ====================
 function setupTabSwitchDetection() {
+    console.log('Setting up tab switch detection...');
     const tabSwitchHandler = function() {
         if (document.hidden && testState.isTestActive) {
             testState.tabSwitches++;
+            console.warn('WARNING: Tab switch detected. Count:', testState.tabSwitches);
             showWarningBanner();
-            
+
             if (testState.tabSwitches >= testConfig.tabSwitchLimit) {
+                console.error('CRITICAL: Tab switch limit reached');
                 document.removeEventListener('visibilitychange', tabSwitchHandler);
                 autoSubmitTest('Tab switch limit exceeded');
             }
@@ -225,212 +467,324 @@ function setupTabSwitchDetection() {
     document.addEventListener('visibilitychange', tabSwitchHandler);
 }
 
-function submitTest() {
-    const unanswered = questions.length - Object.keys(testState.answers).length;
+function showWarningBanner() {
+    const banner = document.getElementById('warningBanner');
+    const attemptsLeft = document.getElementById('attemptsLeft');
+
+    if (banner && attemptsLeft) {
+        attemptsLeft.textContent = testConfig.tabSwitchLimit - testState.tabSwitches;
+        banner.classList.add('show');
+
+        setTimeout(() => {
+            banner.classList.remove('show');
+        }, 5000);
+    }
+}
+
+// ==================== TEST SUBMISSION ====================
+async function submitTest() {
+    console.log('========== SUBMIT TEST CLICKED ==========');
+    const unanswered = testState.questions.length - Object.keys(testState.answers).length;
+
+    console.log('Test status:', {
+        totalQuestions: testState.questions.length,
+        answeredQuestions: Object.keys(testState.answers).length,
+        unansweredQuestions: unanswered
+    });
+
     if (unanswered > 0) {
         if (!confirm(`You have ${unanswered} unanswered questions. Do you want to submit?`)) {
+            console.log('User cancelled submission');
             return;
         }
     }
-    
+
     if (confirm('Are you sure you want to submit the test? This action cannot be undone.')) {
-        finishTest();
+        console.log('User confirmed submission');
+        await finishTest();
+    } else {
+        console.log('User cancelled final submission');
     }
 }
 
 function autoSubmitTest(reason) {
     if (!testState.isTestActive) return;
-    
+
+    console.log('========== AUTO SUBMIT TRIGGERED ==========');
+    console.log('Reason:', reason);
+
     testState.isTestActive = false;
     alert(`Test auto-submitted: ${reason}`);
     finishTest();
 }
 
-function finishTest() {
+async function finishTest() {
+    console.log('========== FINISHING TEST ==========');
     testState.isTestActive = false;
     clearInterval(testState.timerInterval);
     exitFullscreen();
-    const results = calculateResults();
-    showResults(results);
-}
 
-function calculateResults() {
-    let correct = 0;
-    let wrong = 0;
-    let unanswered = 0;
-    const reviewData = [];
+    // Show loading state
+    const testScreen = document.getElementById('testScreen');
+    if (testScreen) {
+        testScreen.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+                <div style="text-align: center;">
+                    <i class='bx bx-loader-alt bx-spin' style="font-size: 48px; color: #667eea;"></i>
+                    <p style="margin-top: 20px; font-size: 18px; color: #64748b;">Evaluating your answers...</p>
+                </div>
+            </div>
+        `;
+    }
 
-    questions.forEach(q => {
-        const userAnswer = testState.answers[q.id];
-        if (userAnswer === undefined) {
-            unanswered++;
-            reviewData.push({
-                questionNum: q.id,
-                question: q.question,
-                options: q.options,
-                status: 'unanswered',
-                userAnswer: 'Not answered',
-                userAnswerIndex: null,
-                correctAnswer: q.options[q.correctAnswer],
-                correctAnswerIndex: q.correctAnswer
-            });
-        } else if (userAnswer === q.correctAnswer) {
-            correct++;
-            reviewData.push({
-                questionNum: q.id,
-                question: q.question,
-                options: q.options,
-                status: 'correct',
-                userAnswer: q.options[userAnswer],
-                userAnswerIndex: userAnswer,
-                correctAnswer: q.options[q.correctAnswer],
-                correctAnswerIndex: q.correctAnswer
-            });
-        } else {
-            wrong++;
-            reviewData.push({
-                questionNum: q.id,
-                question: q.question,
-                options: q.options,
-                status: 'incorrect',
-                userAnswer: q.options[userAnswer],
-                userAnswerIndex: userAnswer,
-                correctAnswer: q.options[q.correctAnswer],
-                correctAnswerIndex: q.correctAnswer
-            });
+    try {
+        // Prepare answers array
+        const answers = testState.questions.map(q => ({
+            questionId: q.id,
+            selectedOption: testState.answers[q.id] || null
+        }));
+
+        console.log('Prepared answers:', answers.length, 'answers');
+        console.log('Answered:', answers.filter(a => a.selectedOption !== null).length);
+        console.log('Unanswered:', answers.filter(a => a.selectedOption === null).length);
+
+        const timeTaken = testConfig.duration - testState.timeRemaining;
+        console.log('Time taken:', timeTaken, 'seconds');
+
+        const submission = {
+            studentId: testConfig.studentId || 1,
+            testId: testConfig.testId,
+            questionBankId: testConfig.questionBankId,
+            answers: answers,
+            timeTakenSeconds: timeTaken,
+            tabSwitches: testState.tabSwitches
+        };
+
+        console.log('Submission payload:', submission);
+
+        // Prepare headers
+        const csrf = getCsrfToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrf) {
+            headers[csrf.header] = csrf.token;
         }
-    });
 
-    // Calculate score in percentage
-    const score = Math.round((correct / questions.length) * 100);
+        console.log('Sending POST request to /api/test/submit...');
 
-    // Time taken
-    const timeSpent = testConfig.duration - testState.timeRemaining;
-    const minutes = Math.floor(timeSpent / 60);
-    const seconds = timeSpent % 60;
+        const response = await fetch('/api/test/submit', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(submission)
+        });
 
-    // Passing Marks (35% of total marks)
-    const passingMarks = Math.ceil((testConfig.totalQuestions * 35) / 100);
+        console.log('Submit response:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            redirected: response.redirected
+        });
 
-    return {
-        score,                  
-        correct,                
-        wrong,                   
-        unanswered,                 
-        totalMarks: questions.length,
-        marksObtained: correct,     
-        timeTaken: `${minutes}:${seconds.toString().padStart(2, '0')}`,
-        passingMarks,              
-        passed: correct >= passingMarks,  
-        reviewData
-    };
+        // Check for authentication issues
+        if (response.status === 401 || response.redirected) {
+            console.error('ERROR: Authentication failed');
+            alert('Your session has expired. Your answers were not saved. Please login again.');
+            window.location.href = '/login';
+            return;
+        }
+
+        // Validate content type
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('ERROR: Non-JSON response received');
+            throw new Error('Server returned non-JSON response');
+        }
+
+        const data = await response.json();
+        console.log('========== SUBMIT RESPONSE ==========');
+        console.log('Response data:', data);
+
+        if (!response.ok) {
+            console.error('ERROR: Response not OK');
+            throw new Error(data.error || `Server error: ${response.status}`);
+        }
+
+        if (!data.success) {
+            console.error('ERROR: Submission failed');
+            throw new Error(data.error || 'Test submission failed');
+        }
+
+        console.log('Test submitted successfully');
+        console.log('Results:', data.result);
+
+        showResults(data.result, timeTaken);
+
+    } catch (error) {
+        console.error('========== SUBMISSION ERROR ==========');
+        console.error('Error:', error);
+        console.error('Error stack:', error.stack);
+
+        alert(`Failed to submit test:\n\n${error.message}\n\nPlease contact administrator.`);
+        window.location.href = '/student-dashboard';
+    }
 }
 
-function getGrade(score) {
-    if (score >= 90) return 'A+';
-    if (score >= 80) return 'A';
-    if (score >= 70) return 'B';
-    if (score >= 60) return 'C';
-    if (score >= 50) return 'D';
-    if (score >= 35) return 'E';  
-    return 'F'; 
-}
+// ==================== RESULTS DISPLAY ====================
+function showResults(results, timeSpent) {
+    console.log('========== DISPLAYING RESULTS ==========');
+    console.log('Results:', results);
+    console.log('Time spent:', timeSpent, 'seconds');
 
-
-function showResults(results) {
     document.getElementById('testScreen').style.display = 'none';
     document.getElementById('resultScreen').style.display = 'block';
     window.scrollTo(0, 0);
-    
+
+    const minutes = Math.floor(timeSpent / 60);
+    const seconds = timeSpent % 60;
+    const timeTaken = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
     const now = new Date();
-    document.getElementById('testDate').textContent = now.toLocaleDateString('en-US', { 
-        year: 'numeric', month: 'short', day: 'numeric' 
-    });
-    document.getElementById('assessmentId').textContent = 'TTS-' + now.getTime().toString().slice(-8);
-    
-    const scoreCircle = document.getElementById('scoreCircle');
-    const circumference = 565.48;
-    const offset = circumference - (results.score / 100) * circumference;
-    setTimeout(() => {
-        scoreCircle.style.transition = 'stroke-dashoffset 1.5s ease-in-out';
-        scoreCircle.style.strokeDashoffset = offset;
-    }, 100);
-    
-    document.getElementById('scoreValue').textContent = results.score;
-    document.getElementById('marksObtained').textContent = results.marksObtained;
-    document.getElementById('totalMarks').textContent = results.totalMarks;
-    document.getElementById('correctCount').textContent = results.correct;
-    document.getElementById('wrongCount').textContent = results.wrong;
-    document.getElementById('unansweredCount').textContent = results.unanswered;
-    document.getElementById('timeTaken').textContent = results.timeTaken;
-    
-    document.getElementById('gradeBadge').textContent = getGrade(results.score);
-    
-    const verdict = document.getElementById('verdict');
-    if (results.passed) {
-        verdict.innerHTML = '<i class="bx bx-check-circle"></i> PASSED';
-        verdict.className = 'result-verdict pass';
-    } else {
-        verdict.innerHTML = '<i class="bx bx-x-circle"></i> FAILED';
-        verdict.className = 'result-verdict fail';
+    const testDateEl = document.getElementById('testDate');
+    const assessmentIdEl = document.getElementById('assessmentId');
+
+    if (testDateEl) {
+        testDateEl.textContent = now.toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric'
+        });
     }
-    
-    renderAnswerReview(results.reviewData);
+
+    if (assessmentIdEl) {
+        assessmentIdEl.textContent = 'TTS-' + now.getTime().toString().slice(-8);
+    }
+
+    // Animate score circle
+    const scoreCircle = document.getElementById('scoreCircle');
+    if (scoreCircle) {
+        const circumference = 565.48;
+        const offset = circumference - (results.scorePercentage / 100) * circumference;
+        setTimeout(() => {
+            scoreCircle.style.transition = 'stroke-dashoffset 1.5s ease-in-out';
+            scoreCircle.style.strokeDashoffset = offset;
+        }, 100);
+    }
+
+    // Update all result fields
+    const scoreValue = document.getElementById('scoreValue');
+    if (scoreValue) scoreValue.textContent = Math.round(results.scorePercentage);
+
+    const marksObtained = document.getElementById('marksObtained');
+    if (marksObtained) marksObtained.textContent = results.obtainedMarks;
+
+    const totalMarks = document.getElementById('totalMarks');
+    if (totalMarks) totalMarks.textContent = results.totalMarks;
+
+    const correctCount = document.getElementById('correctCount');
+    if (correctCount) correctCount.textContent = results.correctAnswers;
+
+    const wrongCount = document.getElementById('wrongCount');
+    if (wrongCount) wrongCount.textContent = results.wrongAnswers;
+
+    const unansweredCount = document.getElementById('unansweredCount');
+    if (unansweredCount) unansweredCount.textContent = results.unanswered;
+
+    const timeTakenEl = document.getElementById('timeTaken');
+    if (timeTakenEl) timeTakenEl.textContent = timeTaken;
+
+    const gradeBadge = document.getElementById('gradeBadge');
+    if (gradeBadge) gradeBadge.textContent = results.grade;
+
+    const verdict = document.getElementById('verdict');
+    if (verdict) {
+        if (results.passed) {
+            verdict.innerHTML = '<i class="bx bx-check-circle"></i> PASSED';
+            verdict.className = 'result-verdict pass';
+        } else {
+            verdict.innerHTML = '<i class="bx bx-x-circle"></i> FAILED';
+            verdict.className = 'result-verdict fail';
+        }
+    }
+
+    if (results.reviewData) {
+        console.log('Rendering answer review with', results.reviewData.length, 'items');
+        renderAnswerReview(results.reviewData);
+    }
+
+    console.log('========== RESULTS DISPLAYED SUCCESSFULLY ==========');
 }
 
+// ==================== ANSWER REVIEW ====================
 let currentFilter = 'all';
 let allReviewData = [];
 
 function renderAnswerReview(reviewData) {
     allReviewData = reviewData;
     const container = document.getElementById('answerReview');
-    
-    const filteredData = currentFilter === 'all' 
-        ? reviewData 
+    if (!container) return;
+
+    const filteredData = currentFilter === 'all'
+        ? reviewData
         : reviewData.filter(item => item.status === currentFilter);
-    
+
     if (filteredData.length === 0) {
         container.innerHTML = '<p style="text-align: center; color: #64748b; padding: 40px;">No questions found in this category.</p>';
         return;
     }
-    
-    container.innerHTML = filteredData.map((item) => `
+
+    container.innerHTML = filteredData.map((item, index) => {
+        const question = testState.questions.find(q => q.id === item.questionId);
+        const questionNumber = question ? question.questionNumber : index + 1;
+
+        return `
         <div class="answer-review ${item.status}" onclick="toggleReview(this)">
             <div class="review-header-row">
                 <span class="review-question">
-                    Question ${item.questionNum}
+                    Question ${questionNumber}
                     <i class='bx bx-chevron-down expand-icon'></i>
                 </span>
                 <span class="review-result ${item.status}">
-                    ${item.status === 'correct' ? '✓ Correct' : 
+                    ${item.status === 'correct' ? '✓ Correct' :
                       item.status === 'incorrect' ? '✗ Incorrect' : '○ Unanswered'}
                 </span>
             </div>
             <div class="review-content">
-                <p><strong>Question:</strong> ${item.question}</p>
-                <p><strong>Your Answer:</strong> ${item.userAnswer}</p>
-                ${item.status !== 'correct' ? 
-                  `<p><strong>Correct Answer:</strong> ${item.correctAnswer}</p>` : ''}
+                <p><strong>Question:</strong> ${item.questionText}</p>
+                <div class="review-options">
+                    <p><strong>Your Answer:</strong>
+                        <span class="answer-badge ${item.status === 'correct' ? 'correct' : item.status === 'incorrect' ? 'wrong' : 'unanswered'}">
+                            ${item.userAnswer || 'Not Answered'}
+                        </span>
+                    </p>
+                    ${item.status !== 'correct' ?
+                      `<p><strong>Correct Answer:</strong>
+                        <span class="answer-badge correct">${item.correctAnswer}</span>
+                       </p>` : ''}
+                </div>
+                ${item.explanation ?
+                  `<div class="explanation-box">
+                    <strong>Explanation:</strong> ${item.explanation}
+                   </div>` : ''}
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function toggleReview(element) {
-    element.classList.toggle('expanded');
+    if (element) {
+        element.classList.toggle('expanded');
+    }
 }
 
 function filterReview(filter) {
     currentFilter = filter;
-    
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
-    
+    if (typeof event !== 'undefined' && event.target) {
+        event.target.classList.add('active');
+    }
     renderAnswerReview(allReviewData);
 }
 
+// ==================== PDF GENERATION ====================
 function downloadPDF() {
     if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
         alert('PDF library is not loaded. Please refresh the page and try again.');
@@ -439,14 +793,10 @@ function downloadPDF() {
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
-    const contentWidth = pageWidth - (margin * 2);
-    let yPos = 0;
 
-    // Get data from DOM
     const testDate = document.getElementById('testDate').textContent;
     const assessmentId = document.getElementById('assessmentId').textContent;
     const score = document.getElementById('scoreValue').textContent;
@@ -460,281 +810,85 @@ function downloadPDF() {
     const verdict = document.getElementById('verdict').textContent.trim();
     const isPassed = verdict.includes('PASSED');
 
-    // ===== HEADER FUNCTION =====
-    function addPageHeader() {
-          // Modern gradient header (darker purple to lighter)
-          doc.setFillColor(88, 101, 242);
-          doc.rect(0, 0, pageWidth, 50, 'F');
+    let yPos = 20;
 
-          // Lighter overlay for gradient effect
-          doc.setFillColor(102, 126, 234);
-          doc.setGState(new doc.GState({opacity: 0.8}));
-          doc.rect(0, 0, pageWidth, 50, 'F');
-          doc.setGState(new doc.GState({opacity: 1}));
-
-          var imgData =""
-          var imgWidth = 55;
-          var imgHeight = 22;
-          doc.addImage(imgData, 'PNG', margin, 14, imgWidth, imgHeight);
-
-          // Modern report title with better typography
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(14);
-          doc.setFont('helvetica', 'bold');
-          doc.text('ASSESSMENT REPORT', pageWidth - margin, 20, { align: 'right' });
-
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.setGState(new doc.GState({opacity: 0.9}));
-          doc.text(testDate, pageWidth - margin, 28, { align: 'right' });
-          doc.setGState(new doc.GState({opacity: 1}));
-
-          // Subtle separator with shadow effect
-          doc.setDrawColor(255, 255, 255);
-          doc.setGState(new doc.GState({opacity: 0.3}));
-          doc.setLineWidth(0.3);
-          doc.line(margin, 42, pageWidth - margin, 42);
-          doc.setGState(new doc.GState({opacity: 1}));
-
-          return 62;
-      }
-
-
-    // ===== PAGE 1: SUMMARY =====
-    yPos = addPageHeader();
-
-    // Report ID Section
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, yPos, contentWidth, 14, 2, 2, 'F');
-    
-    doc.setTextColor(102, 126, 234);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REPORT ID: ', margin + 4, yPos + 6);
-    
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(9);
-    doc.text(assessmentId, margin + 28, yPos + 6);
-    
-    doc.setTextColor(102, 126, 234);
-    doc.text('ASSESSMENT: ', margin + 4, yPos + 11);
-    
-    doc.setTextColor(30, 41, 59);
-    doc.text('Java Programming Final Test', margin + 34, yPos + 11);
-    
-    yPos += 22;
-
-    // Main Score Card
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(margin, yPos, contentWidth, 50, 3, 3, 'FD');
-    
-    // Score circle (simplified as rectangle with large text)
-    const scoreBoxX = margin + 15;
-    const scoreBoxY = yPos + 10;
-    const scoreBoxSize = 30;
-    
+    // Header
     doc.setFillColor(102, 126, 234);
-    doc.circle(scoreBoxX + scoreBoxSize/2, scoreBoxY + scoreBoxSize/2, scoreBoxSize/2, 'F');
-    
+    doc.rect(0, 0, pageWidth, 40, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${score}%`, scoreBoxX + scoreBoxSize/2, scoreBoxY + scoreBoxSize/2 + 3, { align: 'center' });
-    
-    // Score labels
-    doc.setTextColor(100, 116, 139);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Overall Score', scoreBoxX + scoreBoxSize/2, scoreBoxY + scoreBoxSize + 5, { align: 'center' });
-    
-    // Status badge
-    const badgeX = margin + 65;
-    const badgeY = yPos + 18;
-    
-    if (isPassed) {
-        doc.setFillColor(220, 252, 231);
-        doc.setTextColor(5, 150, 105);
-    } else {
-        doc.setFillColor(254, 226, 226);
-        doc.setTextColor(220, 38, 38);
-    }
-    
-    doc.roundedRect(badgeX, badgeY, 40, 10, 2, 2, 'F');
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text(isPassed ? 'PASSED' : 'FAILED', badgeX + 20, badgeY + 7, { align: 'center' });
-    
-    // Grade
+    doc.text('ASSESSMENT REPORT', pageWidth / 2, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(testDate, pageWidth / 2, 30, { align: 'center' });
+
+    yPos = 55;
+
+    // Report details
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(10);
-    doc.text('Grade: ', badgeX + 50, badgeY + 2);
-    
-    doc.setFillColor(102, 126, 234);
-    doc.roundedRect(badgeX + 64, badgeY - 2, 16, 10, 2, 2, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(grade, badgeX + 72, badgeY + 5, { align: 'center' });
-    
-    // Marks obtained
-    doc.setTextColor(71, 85, 105);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Marks Obtained:', badgeX, badgeY + 15);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 41, 59);
-    doc.text(`${marksObtained} / ${totalMarks}`, badgeX + 35, badgeY + 15);
-    
-    yPos += 58;
+    doc.text(`Report ID: ${assessmentId}`, margin, yPos);
+    doc.text(`Assessment: ${testConfig.testName}`, margin, yPos + 7);
 
-    // Statistics Row
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 41, 59);
-    doc.text('PERFORMANCE BREAKDOWN', margin, yPos);
-    
-    doc.setDrawColor(102, 126, 234);
-    doc.setLineWidth(1);
-    doc.line(margin, yPos + 1.5, margin + 58, yPos + 1.5);
-    
-    yPos += 10;
-
-    const statWidth = (contentWidth - 6) / 3;
-    const statHeight = 24;
-    
-    // Correct
-    doc.setFillColor(240, 253, 244);
-    doc.setDrawColor(187, 247, 208);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(margin, yPos, statWidth, statHeight, 2, 2, 'FD');
-    
-    doc.setTextColor(5, 150, 105);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CORRECT', margin + statWidth/2, yPos + 6, { align: 'center' });
-    
-    doc.setFontSize(16);
-    doc.text(correct, margin + statWidth/2, yPos + 16, { align: 'center' });
-    
-    // Wrong
-    doc.setFillColor(254, 242, 242);
-    doc.setDrawColor(252, 165, 165);
-    doc.roundedRect(margin + statWidth + 3, yPos, statWidth, statHeight, 2, 2, 'FD');
-    
-    doc.setTextColor(220, 38, 38);
-    doc.setFontSize(7);
-    doc.text('WRONG', margin + statWidth + 3 + statWidth/2, yPos + 6, { align: 'center' });
-    
-    doc.setFontSize(16);
-    doc.text(wrong, margin + statWidth + 3 + statWidth/2, yPos + 16, { align: 'center' });
-    
-    // Unanswered
-    doc.setFillColor(255, 251, 235);
-    doc.setDrawColor(253, 224, 71);
-    doc.roundedRect(margin + (statWidth + 3) * 2, yPos, statWidth, statHeight, 2, 2, 'FD');
-    
-    doc.setTextColor(217, 119, 6);
-    doc.setFontSize(7);
-    doc.text('UNANSWERED', margin + (statWidth + 3) * 2 + statWidth/2, yPos + 6, { align: 'center' });
-    
-    doc.setFontSize(16);
-    doc.text(unanswered, margin + (statWidth + 3) * 2 + statWidth/2, yPos + 16, { align: 'center' });
-    
-    yPos += 32;
-
-    // Time Taken
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, yPos, contentWidth, 12, 2, 2, 'F');
-    
-    doc.setTextColor(71, 85, 105);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text('TIME TAKEN: ', margin + 4, yPos + 5);
-    
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(9);
-    doc.text(timeTaken, margin + 28, yPos + 5);
-    
-    doc.setTextColor(71, 85, 105);
-    doc.text('DURATION: ', margin + 50, yPos + 5);
-    
-    doc.setTextColor(30, 41, 59);
-    doc.text('30:00', margin + 70, yPos + 5);
-    
-    doc.setTextColor(71, 85, 105);
-    doc.text('PASSING SCORE: ', margin + 90, yPos + 5);
-    
-    doc.setTextColor(30, 41, 59);
-    doc.text('35%', margin + 116, yPos + 5);
-    
     yPos += 20;
 
-    // ===== ADD FOOTER TO ALL PAGES =====
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        
-        // Footer line
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.3);
-        doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
-        
-        // Footer text
-        doc.setFontSize(7);
-        doc.setTextColor(148, 163, 184);
-        doc.setFont('helvetica', 'normal');
-        doc.text('TechnoKraft Online Assessment Platform', margin, pageHeight - 10);
-        doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-        doc.text(`ID: ${assessmentId}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+    // Score
+    doc.setFontSize(14);
+    doc.text(`Score: ${score}%`, margin, yPos);
+    doc.text(`Grade: ${grade}`, pageWidth - margin - 30, yPos);
+
+    yPos += 10;
+
+    // Status
+    doc.setFontSize(12);
+    if (isPassed) {
+        doc.setTextColor(5, 150, 105);
+        doc.text('✓ PASSED', margin, yPos);
+    } else {
+        doc.setTextColor(220, 38, 38);
+        doc.text('✗ FAILED', margin, yPos);
     }
 
-    // Save the PDF
+    yPos += 15;
+
+    // Stats
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(10);
+    doc.text(`Marks: ${marksObtained} / ${totalMarks}`, margin, yPos);
+    doc.text(`Correct: ${correct}`, margin, yPos + 7);
+    doc.text(`Wrong: ${wrong}`, margin + 60, yPos + 7);
+    doc.text(`Unanswered: ${unanswered}`, margin + 120, yPos + 7);
+    doc.text(`Time: ${timeTaken}`, margin, yPos + 14);
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text('TechnoKraft Online Assessment Platform', margin, pageHeight - 10);
+    doc.text(`ID: ${assessmentId}`, pageWidth - margin - 40, pageHeight - 10);
+
     const fileName = `TechnoKraft_Assessment_${assessmentId}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
-    
-    alert('✓ PDF Report downloaded successfully!\n\nFilename: ' + fileName);
+
+    console.log('PDF downloaded:', fileName);
+    alert('✓ PDF Report downloaded successfully!');
 }
 
 function emailReport() {
-    const email = prompt('Enter your email address to receive the test report:');
+    const email = prompt('Enter your email address:');
     if (email && email.includes('@')) {
-        const reportData = {
-            email: email,
-            assessmentId: document.getElementById('assessmentId').textContent,
-            testDate: document.getElementById('testDate').textContent,
-            score: document.getElementById('scoreValue').textContent,
-            marksObtained: document.getElementById('marksObtained').textContent,
-            totalMarks: document.getElementById('totalMarks').textContent,
-            grade: document.getElementById('gradeBadge').textContent,
-            verdict: document.getElementById('verdict').textContent.trim(),
-            correct: document.getElementById('correctCount').textContent,
-            wrong: document.getElementById('wrongCount').textContent,
-            unanswered: document.getElementById('unansweredCount').textContent,
-            timeTaken: document.getElementById('timeTaken').textContent,
-            reviewData: allReviewData
-        };
-        
-        // For future backend integration:
-        // fetch('/api/send-report', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify(reportData)
-        // });
-        
-        alert(`✓ Email Scheduled!\n\nYour detailed assessment report will be sent to:\n${email}\n\nYou will receive:\n• Complete Performance Summary\n• Detailed Answer Analysis\n• Grade Certificate\n• Recommendations for Improvement\n\nPlease check your inbox in 5-10 minutes.\n(Note: This is a demo - Email integration requires backend setup)`);
+        alert(`✓ Report will be sent to: ${email}\n\n(Email integration requires backend setup)`);
     } else if (email) {
         alert('⚠ Please enter a valid email address.');
     }
 }
 
 function backToDashboard() {
-     if (confirm('Are you sure you want to return to dashboard?')) {
-            window.location.href = '/student-dashboard';
-        }
+    if (confirm('Return to dashboard?')) {
+        window.location.href = '/student-dashboard';
+    }
 }
 
+// ==================== SECURITY ====================
 document.addEventListener('contextmenu', function(e) {
     if (testState.isTestActive) {
         e.preventDefault();
@@ -744,7 +898,7 @@ document.addEventListener('contextmenu', function(e) {
 
 document.addEventListener('keydown', function(e) {
     if (testState.isTestActive) {
-        if (e.keyCode === 123 || 
+        if (e.keyCode === 123 ||
             (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) ||
             (e.ctrlKey && e.keyCode === 85)) {
             e.preventDefault();
@@ -760,3 +914,5 @@ window.addEventListener('beforeunload', function(e) {
         return '';
     }
 });
+
+console.log('========== TEST SCRIPT LOADED ==========');
