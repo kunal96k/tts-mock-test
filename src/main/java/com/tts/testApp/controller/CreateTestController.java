@@ -50,7 +50,7 @@ public class CreateTestController {
                     "Please correct the errors: " + bindingResult.getAllErrors().get(0).getDefaultMessage());
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.testDTO", bindingResult);
             redirectAttributes.addFlashAttribute("testDTO", testDTO);
-            return "redirect:/admin/dashboard";
+            return "redirect:/admin/dashboard#create-test";
         }
 
         try {
@@ -79,14 +79,14 @@ public class CreateTestController {
             redirectAttributes.addFlashAttribute("success",
                     "Test '" + savedTest.getTestName() + "' created successfully!");
 
-            return "redirect:/admin/dashboard";
+            return "redirect:/admin/dashboard#create-test";
 
         } catch (Exception e) {
             log.error("Error creating test: {}", e.getMessage(), e);
             redirectAttributes.addFlashAttribute("testError",
                     "Failed to create test: " + e.getMessage());
             redirectAttributes.addFlashAttribute("testDTO", testDTO);
-            return "redirect:/admin/dashboard";
+            return "redirect:/admin/dashboard#create-test";
         }
     }
 
@@ -106,7 +106,7 @@ public class CreateTestController {
                     "Failed to delete test: " + e.getMessage());
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboard#create-test";
     }
 
     /**
@@ -123,7 +123,7 @@ public class CreateTestController {
         } catch (Exception e) {
             log.error("Error fetching test: {}", e.getMessage(), e);
             redirectAttributes.addFlashAttribute("error", "Test not found with ID: " + id);
-            return "redirect:/admin/dashboard";
+            return "redirect:/admin/dashboard#create-test";
         }
     }
 }

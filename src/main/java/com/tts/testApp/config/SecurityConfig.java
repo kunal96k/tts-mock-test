@@ -25,6 +25,7 @@ public class SecurityConfig {
     private final CustomLoginSuccessHandler successHandler;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final CustomLoginFailureHandler customLoginFailureHandler;
+    private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -56,8 +57,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/h2-console/**", "/signup", "/login", "/forgot-password", "/reset-password").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/start-test/**").permitAll()
-                        .requestMatchers("/admin-dashboard/**").hasRole("ADMIN")
-                        .requestMatchers("/student-dashboard/**").hasRole("STUDENT")
+                        .requestMatchers("/admin-dashboard/**", "/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/student-dashboard/**", "/student/**").hasRole("STUDENT")
                         .requestMatchers("/api/test/**").hasRole("STUDENT")
                         .anyRequest().authenticated()
                 )
@@ -70,7 +71,7 @@ public class SecurityConfig {
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout=true")
+                        .logoutSuccessHandler(customLogoutSuccessHandler)
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll()
@@ -78,13 +79,12 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception
                         .accessDeniedHandler(customAccessDeniedHandler)
                         .authenticationEntryPoint((request, response, authException) -> {
-                            // ✅ Different behavior for API calls
+                            //  Different behavior for API calls
                             if (request.getRequestURI().startsWith("/api/")) {
                                 response.setContentType("application/json");
                                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                                 response.getWriter().write("{\"success\":false,\"error\":\"Unauthorized or session expired\"}");
                             } else {
-                                // Default behavior: redirect to login page for UI
                                 response.sendRedirect("/login");
                             }
                         })

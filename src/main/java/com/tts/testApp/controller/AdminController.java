@@ -177,7 +177,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("studentDTO", studentDTO);
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboard#students";
     }
 
     @PostMapping("/students/{id}/update")
@@ -194,7 +194,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("studentError", firstError);
             redirectAttributes.addFlashAttribute("studentDTO", studentDTO);
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.studentDTO", bindingResult);
-            return "redirect:/admin/dashboard";
+            return "redirect:/admin/dashboard#students";
         }
 
         try {
@@ -208,7 +208,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("studentDTO", studentDTO);
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboard#students";
     }
 
     @PostMapping("/students/{id}/delete")
@@ -227,7 +227,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboard#students";
     }
 
     // ========================================
@@ -289,7 +289,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("subjectError", errorMessage);
             redirectAttributes.addFlashAttribute("subjectDTO", subjectDTO);
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.subjectDTO", bindingResult);
-            return "redirect:/admin/dashboard";
+            return "redirect:/admin/dashboard#subjects";
         }
 
         try {
@@ -303,7 +303,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("subjectDTO", subjectDTO);
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboard#subjects";
     }
 
     @PostMapping("/subjects/{id}/update")
@@ -322,7 +322,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("subjectError", errorMessage);
             redirectAttributes.addFlashAttribute("subjectDTO", subjectDTO);
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.subjectDTO", bindingResult);
-            return "redirect:/admin/dashboard";
+            return "redirect:/admin/dashboard#subjects";
         }
 
         try {
@@ -336,7 +336,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("subjectDTO", subjectDTO);
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboard#subjects";
     }
 
     @PostMapping("/subjects/{id}/delete")
@@ -357,7 +357,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
 
-        return "redirect:/admin/dashboard";
+        return "redirect:/admin/dashboard#subjects";
     }
 
     // ========================================

@@ -41,7 +41,7 @@ public class CustomLoginSuccessHandler implements AuthenticationSuccessHandler {
 
         // If role matches, redirect to appropriate dashboard
         if (isAdmin) {
-            response.sendRedirect("/admin-dashboard");
+            response.sendRedirect("/admin/dashboard");
         } else if (isStudent) {
             response.sendRedirect("/student-dashboard");
         } else {
