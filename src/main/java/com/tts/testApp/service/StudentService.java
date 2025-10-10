@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -70,6 +71,37 @@ public class StudentService {
         return new StudentDTO(student);
     }
 
+    /**
+     * Find student by email
+     * @param email the student's email
+     * @return Optional containing the student if found
+     */
+    public Optional<Student> findByEmail(String email) {
+        log.debug("Finding student by email: {}", email);
+        return studentRepository.findByEmail(email.toLowerCase().trim());
+    }
+
+    /**
+     * Get student entity by email (throws exception if not found)
+     * @param email the student's email
+     * @return the student entity
+     */
+    public Student getStudentByEmail(String email) {
+        log.debug("Getting student by email: {}", email);
+        return studentRepository.findByEmail(email.toLowerCase().trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with email: " + email));
+    }
+
+    /**
+     * Get student DTO by email
+     * @param email the student's email
+     * @return StudentDTO
+     */
+    public StudentDTO getStudentDTOByEmail(String email) {
+        Student student = getStudentByEmail(email);
+        return new StudentDTO(student);
+    }
+
     @Transactional
     public StudentDTO updateStudent(Long id, StudentDTO studentDTO) {
         Student student = studentRepository.findById(id)
@@ -112,6 +144,33 @@ public class StudentService {
 
     public long countStudents() {
         return studentRepository.count();
+    }
+
+    /**
+     * Increment the test count for a student
+     * @param studentId the student's ID
+     */
+    @Transactional
+    public void incrementTestCount(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        student.setTestsTaken(student.getTestsTaken() + 1);
+        studentRepository.save(student);
+        log.info("Incremented test count for student: {} (Total: {})",
+                student.getStudentId(), student.getTestsTaken());
+    }
+
+    /**
+     * Increment test count by email
+     * @param email the student's email
+     */
+    @Transactional
+    public void incrementTestCountByEmail(String email) {
+        Student student = getStudentByEmail(email);
+        student.setTestsTaken(student.getTestsTaken() + 1);
+        studentRepository.save(student);
+        log.info("Incremented test count for student: {} (Total: {})",
+                student.getStudentId(), student.getTestsTaken());
     }
 
     private String generateStudentId() {

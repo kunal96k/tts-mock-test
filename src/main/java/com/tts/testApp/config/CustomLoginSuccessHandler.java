@@ -43,7 +43,7 @@ public class CustomLoginSuccessHandler implements AuthenticationSuccessHandler {
         if (isAdmin) {
             response.sendRedirect("/admin/dashboard");
         } else if (isStudent) {
-            response.sendRedirect("/student-dashboard");
+            response.sendRedirect("/student/dashboard");
         } else {
             response.sendRedirect("/login?error=true");
         }

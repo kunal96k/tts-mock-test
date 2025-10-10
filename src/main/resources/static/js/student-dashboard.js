@@ -1,3 +1,30 @@
+
+function filterTests() {
+    const typeFilter = document.getElementById('testTypeFilter').value;
+    const subjectFilter = document.getElementById('subjectFilter').value;
+    const testCards = document.querySelectorAll('.test-card');
+
+    let visibleCount = 0;
+
+    testCards.forEach(card => {
+        const testType = card.dataset.testType;
+        const subject = card.dataset.subject;
+
+        const typeMatch = typeFilter === 'ALL' || testType === typeFilter;
+        const subjectMatch = subjectFilter === 'ALL' || subject === subjectFilter;
+
+        if (typeMatch && subjectMatch) {
+            card.style.display = 'flex';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    console.log(`Filtered tests: ${visibleCount} visible`);
+}
+
+
 // Show section navigation
 function showSection(sectionName) {
     // Hide all sections

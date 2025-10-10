@@ -311,6 +311,31 @@ public class CreateTestService {
     }
 
     /**
+     * Get all active tests (for student dashboard)
+     */
+    public List<CreateTestDTO> getAllActiveTests() {
+        log.info("Fetching all active tests");
+
+        try {
+            List<CreateTest> activeTests = createTestRepository.findByActiveTrue();
+
+            log.info("Found {} active tests in database", activeTests.size());
+
+            List<CreateTestDTO> testDTOs = activeTests.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            log.debug("Converted {} tests to DTOs", testDTOs.size());
+
+            return testDTOs;
+
+        } catch (Exception e) {
+            log.error("Error fetching active tests: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch active tests", e);
+        }
+    }
+
+    /**
      * Convert Entity to DTO
      */
     private CreateTestDTO convertToDTO(CreateTest test) {

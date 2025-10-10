@@ -63,6 +63,8 @@ public interface CreateTestRepository extends JpaRepository<CreateTest, Long> {
      */
     long countBySubject(Subject subject);
 
+    List<CreateTest> findByActiveTrueAndSubject_Id(Long subjectId);
+
     /**
      * Find active tests by type
      */

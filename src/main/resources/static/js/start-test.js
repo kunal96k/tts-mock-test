@@ -884,7 +884,7 @@ function emailReport() {
 
 function backToDashboard() {
     if (confirm('Return to dashboard?')) {
-        window.location.href = '/student-dashboard';
+        window.location.href = '/student/dashboard';
     }
 }
 
